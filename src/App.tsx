@@ -1,59 +1,42 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [byeMsg, setByeMsg] = useState("");
-  const [name, setName] = useState("");
+  const [dmName, setDmName] = useState("");
+  const [status, setStatus] = useState("No session active.");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  async function handleStartSession() {
+    try {
+      const response = await invoke<string>("start_local_session", { dmName });
+      setStatus(response);
+    } catch (err) {
+      console.error("Failed to talk to Rust:", err);
+    }
   }
 
-
-  async function bye() {
-    setByeMsg(await invoke("goodbye", {name}))
-  }
-  
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-          bye();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+      <h1>VTT DM Control Panel</h1>
+      <hr />
+      
+      <div style={{ margin: "20px 0" }}>
+        <input 
+          type="text" 
+          placeholder="Enter DM Name" 
+          value={dmName} 
+          onChange={(e) => setDmName(e.target.value)} 
+          style={{ padding: "8px", marginRight: "10px" }}
         />
+        <button onClick={handleStartSession} style={{ padding: "8px 16px" }}>
+          Start Local Session
+        </button>
+      </div>
 
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-      <p>{byeMsg}</p>
-    </main>
+      <div style={{ padding: "10px", background: "#eee", borderRadius: "4px" }}>
+        <strong>Status:</strong> {status}
+      </div>
+    </div>
   );
 }
 
