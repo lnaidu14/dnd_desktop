@@ -46,6 +46,7 @@ pub fn run() {
         // Core plugins
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![start_local_session])
         .setup(|app| {
             if let Err(e) = initialize_local_directories(app) {
