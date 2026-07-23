@@ -96,7 +96,14 @@ export function CampaignDashboard({
         ]);
       }
     } catch (err) {
-      console.error("Failed to import token:", err);
+      if (
+        err instanceof Error &&
+        err.message.includes("already been imported")
+      ) {
+        console.warn(err.message);
+      } else {
+        console.error("Failed to import token:", err);
+      }
     }
   }
 

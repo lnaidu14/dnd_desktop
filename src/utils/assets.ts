@@ -52,8 +52,17 @@ export async function saveTokenAsset(sourceFilePath: string): Promise<string> {
     });
   }
 
-  const fileName = sourceFilePath.split(/[/\\]/).pop() || `token_${Date.now()}.png`;
-  const relativeDestination = `assets/tokens/${Date.now()}_${fileName}`;
+  const fileName =
+    sourceFilePath.split(/[/\\]/).pop() || `token_${Date.now()}.png`;
+  const relativeDestination = `assets/tokens/${fileName}`;
+
+  const alreadyExists = await exists(relativeDestination, {
+    baseDir: BaseDirectory.AppData,
+  });
+
+  if (alreadyExists) {
+    throw new Error(`Token "${fileName}" has already been imported.`);
+  }
 
   await copyFile(sourceFilePath, relativeDestination, {
     toPathBaseDir: BaseDirectory.AppData,
