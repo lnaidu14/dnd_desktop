@@ -1,4 +1,4 @@
-export interface TokenPlacement {
+export interface Token {
   id: string;
   name: string;
   imageUrl: string;
@@ -14,7 +14,7 @@ export interface Scene {
   gridSize: number;
   gridColor: string;
   gridEnabled: boolean;
-  tokens: TokenPlacement[];
+  tokens: Token[];
   mapImage: string;
 }
 

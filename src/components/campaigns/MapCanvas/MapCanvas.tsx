@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useCallback } from "react";
-import { Scene, TokenPlacement } from "../../../types/campaigns";
+import { Scene, Token } from "../../../types/campaigns";
 
 interface MapCanvasProps {
   activeScene: Scene;
   mapUrl: string | null;
-  onAddTokenToScene: (token: TokenPlacement) => void;
+  onAddTokenToScene: (token: Token) => void;
 }
 
 export const MapCanvas: React.FC<MapCanvasProps> = ({
@@ -16,7 +16,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
   const mapWrapperRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-    // Draw Grid Lines onto Canvas
+  // Draw Grid Lines onto Canvas
   const drawGrid = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -47,22 +47,22 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
 
   // Sync canvas dimensions to the current rendered size of the image
   const updateCanvasDimensions = useCallback(() => {
-  const img = imgRef.current;
-  const canvas = canvasRef.current;
-  if (!img || !canvas) return;
+    const img = imgRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas) return;
 
-  if (img.clientWidth > 0 && img.clientHeight > 0) {
-    // Set actual canvas pixel buffer dimensions
-    canvas.width = img.clientWidth;
-    canvas.height = img.clientHeight;
+    if (img.clientWidth > 0 && img.clientHeight > 0) {
+      // Set actual canvas pixel buffer dimensions
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
 
-    // Force canvas style dimensions to match the image dimensions
-    canvas.style.width = `${img.clientWidth}px`;
-    canvas.style.height = `${img.clientHeight}px`;
+      // Force canvas style dimensions to match the image dimensions
+      canvas.style.width = `${img.clientWidth}px`;
+      canvas.style.height = `${img.clientHeight}px`;
 
-    drawGrid();
-  }
-}, [activeScene, drawGrid]);
+      drawGrid();
+    }
+  }, [activeScene, drawGrid]);
 
   // Re-draw grid when settings change
   useEffect(() => {
@@ -115,7 +115,7 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         ? Math.floor(dropY / gridSize) * gridSize
         : dropY;
 
-      const newPlacement: TokenPlacement = {
+      const newPlacement: Token = {
         id: `placed_${Date.now()}`,
         name: tokenData.name,
         imageUrl: tokenData.imageUrl || "",
@@ -138,7 +138,6 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
         e.dataTransfer.dropEffect = "copy";
       }}
       onDragEnter={(e) => e.preventDefault()}
-      
     >
       {mapUrl ? (
         <div

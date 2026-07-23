@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Campaign, Scene, TokenPlacement } from "../../../types/campaigns";
+import { Campaign, Scene, Token } from "../../../types/campaigns";
 import {
   saveMapAsset,
   getAssetUrl,
@@ -11,65 +11,13 @@ import "./CampaignDashboard.css";
 import { MapCanvas } from "../MapCanvas/MapCanvas";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { useDraggable } from "@dnd-kit/react";
+import { DragDropProvider } from "@dnd-kit/react";
+import { DraggableToken } from "../DraggableToken/DraggableToken";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
   onUpdateCampaign: (updated: Campaign) => void;
   onBack: () => void;
-}
-
-interface DraggableProps {
-  token: {
-    id: string;
-    imageUrl?: string;
-    name: string;
-  };
-}
-
-function Draggable({ token }: DraggableProps) {
-  const { ref } = useDraggable({
-    id: "draggable",
-  });
-
-  return (
-    <>
-      {/* <div ref={ref} key={token.id} className="token-card">
-        <div className="token-avatar">
-          {token.imageUrl ? (
-            <img
-              src={token.imageUrl}
-              alt={token.name}
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: "50%",
-                objectFit: "cover",
-                pointerEvents: "none", // Allows drag events to originate cleanly from card
-              }}
-            />
-          ) : (
-            token.name[0]
-          )}
-        </div>
-        <span style={{ fontSize: "0.75rem", textAlign: "center" }}>
-          {token.name}
-        </span>
-      </div> */}
-      <button ref={ref} className="token-card">
-        <div className="token-avatar">
-            {token.imageUrl ? (
-                <img src={token.imageUrl} alt={token.name} />
-            ) : (
-                token.name[0]
-            )}
-        </div>
-        <span style={{ fontSize: "0.75rem", textAlign: "center" }}>
-          {token.name}
-        </span>
-      </button>
-    </>
-  );
 }
 
 export function CampaignDashboard({
@@ -85,13 +33,11 @@ export function CampaignDashboard({
   const [isAddingScene, setIsAddingScene] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
-  const [availableTokens, setAvailableTokens] = useState<
-    { id: string; name: string; imageUrl?: string }[]
-  >([
-    { id: "1", name: "Goblin" },
-    { id: "2", name: "Hero" },
-    { id: "3", name: "Chest" },
-    { id: "4", name: "Dragon" },
+  const [availableTokens, setAvailableTokens] = useState<Token[]>([
+    { id: "1", name: "Goblin", imageUrl: "", x: 0, y: 0, size: 0 },
+    { id: "2", name: "Hero", imageUrl: "", x: 0, y: 0, size: 0 },
+    { id: "3", name: "Chest", imageUrl: "", x: 0, y: 0, size: 0 },
+    { id: "4", name: "Dragon", imageUrl: "", x: 0, y: 0, size: 0 },
   ]);
 
   const activeScene = campaign.scenes.find(
@@ -142,7 +88,10 @@ export function CampaignDashboard({
             id: `token_${Date.now()}`,
             name: fileName,
             relativePath,
-            imageUrl: displayUrl, // Safe asset:// schema URL
+            imageUrl: displayUrl, // Safe asset:// schema URL,
+            x: 0,
+            y: 0,
+            size: 0,
           },
         ]);
       }
@@ -152,12 +101,10 @@ export function CampaignDashboard({
   }
 
   // Function to handle adding token placement to active scene
-  const handleAddTokenToActiveScene = async (
-    tokenPlacement: TokenPlacement,
-  ) => {
+  const handleAddTokenToActiveScene = async (Token: Token) => {
     if (!activeScene) return;
 
-    const updatedTokens = [...(activeScene.tokens || []), tokenPlacement];
+    const updatedTokens = [...(activeScene.tokens || []), Token];
     await handleUpdateActiveScene({ tokens: updatedTokens });
   };
 
@@ -433,11 +380,9 @@ export function CampaignDashboard({
                     Drag any token onto the active map view.
                   </p>
 
-                  <div className="token-grid">
-                    {availableTokens.map((token) => (
-                      <Draggable token={token} />
-                    ))}
-                  </div>
+                  <DragDropProvider>
+                    <DraggableToken tokens={availableTokens} />
+                  </DragDropProvider>
                 </div>
               )}
 

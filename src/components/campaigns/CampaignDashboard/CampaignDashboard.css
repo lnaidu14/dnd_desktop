@@ -40,7 +40,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.2s ease, padding 0.2s ease;
+  transition:
+    width 0.2s ease,
+    padding 0.2s ease;
   box-sizing: border-box;
   border: 1px solid #27272a;
 }
@@ -207,42 +209,6 @@
 
 .form-action-row button {
   flex: 1;
-}
-
-/* Token Palette Grid */
-.token-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.token-card {
-  background-color: #27272a;
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  cursor: grab;
-  border: 1px solid #3f3f46;
-  transition: border-color 0.15s ease;
-}
-
-.token-card:hover {
-  border-color: #3b82f6;
-}
-
-.token-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #3b82f6;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
 }
 
 /* Settings Tab Form Controls */
