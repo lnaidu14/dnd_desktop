@@ -13,6 +13,7 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
 import { DraggableToken } from "../DraggableToken/DraggableToken";
+import { DroppableGridCell } from "../DroppableGridCell/DroppableGridCell";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -106,14 +107,6 @@ export function CampaignDashboard({
       }
     }
   }
-
-  // Function to handle adding token placement to active scene
-  const handleAddTokenToActiveScene = async (Token: Token) => {
-    if (!activeScene) return;
-
-    const updatedTokens = [...(activeScene.tokens || []), Token];
-    await handleUpdateActiveScene({ tokens: updatedTokens });
-  };
 
   // Save changes to disk and lift state up
   async function saveAndEmit(updatedCampaign: Campaign) {
@@ -235,241 +228,241 @@ export function CampaignDashboard({
       {/* Workspace Body */}
       <div className="workspace-body">
         {/* Collapsible Sidebar Inspector */}
-        <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-          <div className="sidebar-header">
+        <DragDropProvider>
+          <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+            <div className="sidebar-header">
+              {!isSidebarCollapsed && (
+                /* Tab Navigation Bar */
+                <div className="inspector-tabs">
+                  <button
+                    className={`tab-btn ${activeTab === "scenes" ? "active" : ""}`}
+                    onClick={() => setActiveTab("scenes")}
+                  >
+                    Scenes
+                  </button>
+                  <button
+                    className={`tab-btn ${activeTab === "tokens" ? "active" : ""}`}
+                    onClick={() => setActiveTab("tokens")}
+                  >
+                    Tokens
+                  </button>
+                  <button
+                    className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
+                    onClick={() => setActiveTab("settings")}
+                  >
+                    Settings
+                  </button>
+                </div>
+              )}
+              <button
+                className="sidebar-toggle-btn"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                title={
+                  isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
+                }
+              >
+                {isSidebarCollapsed ? "▶" : "◀"}
+              </button>
+            </div>
+
             {!isSidebarCollapsed && (
-              /* Tab Navigation Bar */
-              <div className="inspector-tabs">
-                <button
-                  className={`tab-btn ${activeTab === "scenes" ? "active" : ""}`}
-                  onClick={() => setActiveTab("scenes")}
-                >
-                  Scenes
-                </button>
-                <button
-                  className={`tab-btn ${activeTab === "tokens" ? "active" : ""}`}
-                  onClick={() => setActiveTab("tokens")}
-                >
-                  Tokens
-                </button>
-                <button
-                  className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
-                  onClick={() => setActiveTab("settings")}
-                >
-                  Settings
-                </button>
-              </div>
-            )}
-            <button
-              className="sidebar-toggle-btn"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isSidebarCollapsed ? "▶" : "◀"}
-            </button>
-          </div>
-
-          {!isSidebarCollapsed && (
-            <>
-              {/* TAB 1: SCENES */}
-              {activeTab === "scenes" && (
-                <div className="tab-content">
-                  <ul className="scene-list">
-                    {campaign.scenes.map((scene) => (
-                      <li
-                        key={scene.id}
-                        className={`scene-item ${
-                          scene.id === campaign.activeSceneId
-                            ? "active-scene"
-                            : ""
-                        }`}
-                        onClick={async () => {
-                          const updated = {
-                            ...campaign,
-                            activeSceneId: scene.id,
-                          };
-                          await saveAndEmit(updated);
-                        }}
-                      >
-                        <span>🗺️ {scene.name}</span>
-                        <button
-                          onClick={(e) => handleDeleteScene(e, scene.id)}
-                          className="delete-scene-btn"
-                          title="Delete Scene"
+              <>
+                {/* TAB 1: SCENES */}
+                {activeTab === "scenes" && (
+                  <div className="tab-content">
+                    <ul className="scene-list">
+                      {campaign.scenes.map((scene) => (
+                        <li
+                          key={scene.id}
+                          className={`scene-item ${
+                            scene.id === campaign.activeSceneId
+                              ? "active-scene"
+                              : ""
+                          }`}
+                          onClick={async () => {
+                            const updated = {
+                              ...campaign,
+                              activeSceneId: scene.id,
+                            };
+                            await saveAndEmit(updated);
+                          }}
                         >
-                          🗑️
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="sidebar-footer">
-                    {isAddingScene ? (
-                      <form
-                        onSubmit={handleAddScene}
-                        className="add-scene-form"
-                      >
-                        <input
-                          type="text"
-                          placeholder="Scene Name..."
-                          value={newSceneName}
-                          onChange={(e) => setNewSceneName(e.target.value)}
-                          autoFocus
-                        />
-
-                        <button
-                          type="button"
-                          onClick={handlePickMapFile}
-                          className="btn-secondary"
-                        >
-                          {selectedMapPath
-                            ? "📁 Change Map Image"
-                            : "📁 Choose Map Image"}
-                        </button>
-
-                        {selectedMapPath && (
-                          <span className="selected-path-text">
-                            Selected: {selectedMapPath.split(/[/\\]/).pop()}
-                          </span>
-                        )}
-
-                        <div className="form-action-row">
-                          <button type="submit" className="btn-primary">
-                            Save
+                          <span>🗺️ {scene.name}</span>
+                          <button
+                            onClick={(e) => handleDeleteScene(e, scene.id)}
+                            className="delete-scene-btn"
+                            title="Delete Scene"
+                          >
+                            🗑️
                           </button>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="sidebar-footer">
+                      {isAddingScene ? (
+                        <form
+                          onSubmit={handleAddScene}
+                          className="add-scene-form"
+                        >
+                          <input
+                            type="text"
+                            placeholder="Scene Name..."
+                            value={newSceneName}
+                            onChange={(e) => setNewSceneName(e.target.value)}
+                            autoFocus
+                          />
+
                           <button
                             type="button"
+                            onClick={handlePickMapFile}
                             className="btn-secondary"
-                            onClick={() => {
-                              setIsAddingScene(false);
-                              setSelectedMapPath(null);
-                            }}
                           >
-                            Cancel
+                            {selectedMapPath
+                              ? "📁 Change Map Image"
+                              : "📁 Choose Map Image"}
                           </button>
-                        </div>
-                      </form>
-                    ) : (
+
+                          {selectedMapPath && (
+                            <span className="selected-path-text">
+                              Selected: {selectedMapPath.split(/[/\\]/).pop()}
+                            </span>
+                          )}
+
+                          <div className="form-action-row">
+                            <button type="submit" className="btn-primary">
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              onClick={() => {
+                                setIsAddingScene(false);
+                                setSelectedMapPath(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button
+                          onClick={() => setIsAddingScene(true)}
+                          className="btn-primary full-width"
+                        >
+                          + Add Scene
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: TOKENS */}
+                {activeTab === "tokens" && (
+                  <div className="tab-content">
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <h4 className="tab-section-title" style={{ margin: 0 }}>
+                        Token Library
+                      </h4>
                       <button
-                        onClick={() => setIsAddingScene(true)}
-                        className="btn-primary full-width"
+                        className="btn-secondary"
+                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                        onClick={handleImportToken}
                       >
-                        + Add Scene
+                        + Import Token
                       </button>
+                    </div>
+                    <p className="tab-section-subtitle">
+                      Drag any token onto the active map view.
+                    </p>
+
+                    <DraggableToken tokens={availableTokens} />
+                  </div>
+                )}
+
+                {/* TAB 3: SCENE SETTINGS */}
+                {activeTab === "settings" && (
+                  <div className="tab-content">
+                    {activeScene ? (
+                      <div className="settings-form">
+                        <label>
+                          Scene Name
+                          <input
+                            type="text"
+                            value={activeScene.name}
+                            onChange={(e) =>
+                              handleUpdateActiveScene({ name: e.target.value })
+                            }
+                          />
+                        </label>
+
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={activeScene.gridEnabled ?? false}
+                            onChange={(e) =>
+                              handleUpdateActiveScene({
+                                gridEnabled: e.target.checked,
+                              })
+                            }
+                          />
+                          Show Grid Overlay
+                        </label>
+
+                        <label>
+                          Grid Size (px)
+                          <input
+                            type="number"
+                            value={activeScene.gridSize || 50}
+                            onChange={(e) =>
+                              handleUpdateActiveScene({
+                                gridSize: Number(e.target.value),
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <p style={{ color: "#71717a", fontSize: "0.85rem" }}>
+                        No active scene to configure.
+                      </p>
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </>
+            )}
+          </aside>
 
-              {/* TAB 2: TOKENS */}
-              {activeTab === "tokens" && (
-                <div className="tab-content">
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    <h4 className="tab-section-title" style={{ margin: 0 }}>
-                      Token Library
-                    </h4>
-                    <button
-                      className="btn-secondary"
-                      style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                      onClick={handleImportToken}
-                    >
-                      + Import Token
-                    </button>
-                  </div>
-                  <p className="tab-section-subtitle">
-                    Drag any token onto the active map view.
-                  </p>
-
-                  <DragDropProvider>
-                    <DraggableToken tokens={availableTokens} />
-                  </DragDropProvider>
-                </div>
-              )}
-
-              {/* TAB 3: SCENE SETTINGS */}
-              {activeTab === "settings" && (
-                <div className="tab-content">
-                  {activeScene ? (
-                    <div className="settings-form">
-                      <label>
-                        Scene Name
-                        <input
-                          type="text"
-                          value={activeScene.name}
-                          onChange={(e) =>
-                            handleUpdateActiveScene({ name: e.target.value })
-                          }
-                        />
-                      </label>
-
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={activeScene.gridEnabled ?? false}
-                          onChange={(e) =>
-                            handleUpdateActiveScene({
-                              gridEnabled: e.target.checked,
-                            })
-                          }
-                        />
-                        Show Grid Overlay
-                      </label>
-
-                      <label>
-                        Grid Size (px)
-                        <input
-                          type="number"
-                          value={activeScene.gridSize || 50}
-                          onChange={(e) =>
-                            handleUpdateActiveScene({
-                              gridSize: Number(e.target.value),
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                  ) : (
-                    <p style={{ color: "#71717a", fontSize: "0.85rem" }}>
-                      No active scene to configure.
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </aside>
-
-        {/* Viewport Map Area */}
-        <main
-          className="map-viewport"
-          onDragOver={(e) => {
-            e.preventDefault();
-            console.log("Hovering over map drop zone");
-            e.dataTransfer.dropEffect = "copy";
-          }}
-          onDragEnter={(e) => e.preventDefault()}
-        >
-          {activeScene ? (
-            <MapCanvas
-              activeScene={activeScene}
-              mapUrl={activeMapUrl}
-              onAddTokenToScene={handleAddTokenToActiveScene}
-            />
-          ) : (
-            <div className="empty-viewport-message">
-              <p style={{ color: "#71717a" }}>
-                No active scene selected. Add a scene to get started!
-              </p>
-            </div>
-          )}
-        </main>
+          {/* Viewport Map Area */}
+          <main
+            className="map-viewport"
+            onDragOver={(e) => {
+              e.preventDefault();
+              console.log("Hovering over map drop zone");
+              e.dataTransfer.dropEffect = "copy";
+            }}
+            onDragEnter={(e) => e.preventDefault()}
+          >
+            {activeScene ? (
+              <DroppableGridCell row={1} col={1} size={40}>
+                <MapCanvas activeScene={activeScene} mapUrl={activeMapUrl} />
+              </DroppableGridCell>
+            ) : (
+              <div className="empty-viewport-message">
+                <p style={{ color: "#71717a" }}>
+                  No active scene selected. Add a scene to get started!
+                </p>
+              </div>
+            )}
+          </main>
+        </DragDropProvider>
       </div>
     </div>
   );

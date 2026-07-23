@@ -4,17 +4,18 @@ import { Scene, Token } from "../../../types/campaigns";
 interface MapCanvasProps {
   activeScene: Scene;
   mapUrl: string | null;
-  onAddTokenToScene: (token: Token) => void;
 }
 
 export const MapCanvas: React.FC<MapCanvasProps> = ({
   activeScene,
   mapUrl,
-  onAddTokenToScene,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mapWrapperRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+
+  console.log("mapUrl: ", mapUrl);
+  console.log("activeScene: ", activeScene);
 
   // Draw Grid Lines onto Canvas
   const drawGrid = useCallback(() => {
@@ -85,166 +86,121 @@ export const MapCanvas: React.FC<MapCanvasProps> = ({
     };
   }, [updateCanvasDimensions]);
 
-  // Handle Token Drop relative to the Map Wrapper (not the outer container)
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!mapWrapperRef.current) return;
-
-    const rawData = e.dataTransfer.getData("application/json");
-    if (!rawData) return;
-
-    try {
-      const tokenData = JSON.parse(rawData);
-
-      // Measure offset relative strictly to the map image container
-      const rect = mapWrapperRef.current.getBoundingClientRect();
-
-      const dropX = e.clientX - rect.left;
-      const dropY = e.clientY - rect.top;
-
-      // Ensure drop occurred inside the actual image boundaries
-      if (dropX < 0 || dropY < 0 || dropX > rect.width || dropY > rect.height) {
-        return;
-      }
-
-      const gridSize = activeScene.gridSize || 50;
-      const x = activeScene.gridEnabled
-        ? Math.floor(dropX / gridSize) * gridSize
-        : dropX;
-      const y = activeScene.gridEnabled
-        ? Math.floor(dropY / gridSize) * gridSize
-        : dropY;
-
-      const newPlacement: Token = {
-        id: `placed_${Date.now()}`,
-        name: tokenData.name,
-        imageUrl: tokenData.imageUrl || "",
-        x,
-        y,
-        size: 1,
-      };
-
-      onAddTokenToScene(newPlacement);
-    } catch (err) {
-      console.error("Failed to parse token drop data:", err);
-    }
-  };
-
   return (
-    <div
-      className="map-canvas-container"
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-      }}
-      onDragEnter={(e) => e.preventDefault()}
-    >
-      {mapUrl ? (
-        <div
-          ref={mapWrapperRef}
-          onDrop={handleDrop}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-          }}
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <img
-            ref={imgRef}
-            src={mapUrl}
-            alt={activeScene.name}
-            onLoad={updateCanvasDimensions}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              width: "auto",
-              height: "auto",
-              objectFit: "contain", // Fits whole image without cropping
-              display: "block",
-              pointerEvents: "none",
-            }}
-          />
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: "absolute",
-              // Position canvas precisely over the rendered image element
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              pointerEvents: "none",
-            }}
-          />
-          {/* Token Layer */}
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: canvasRef.current?.width || "100%",
-              height: canvasRef.current?.height || "100%",
-              pointerEvents: "none",
-            }}
-          >
-            {activeScene.tokens?.map((token) => (
-              <div
-                key={token.id}
-                style={{
-                  position: "absolute",
-                  left: `${token.x}px`,
-                  top: `${token.y}px`,
-                  width: `${(activeScene.gridSize || 50) * (token.size || 1)}px`,
-                  height: `${(activeScene.gridSize || 50) * (token.size || 1)}px`,
-                  pointerEvents: "auto",
-                  cursor: "move",
-                }}
-              >
-                {token.imageUrl ? (
-                  <img
-                    src={token.imageUrl}
-                    alt={token.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "50%",
-                      backgroundColor: "#3b82f6",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: "bold",
-                      fontSize: "0.8rem",
-                      border: "2px solid #ffffff",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {token.name.substring(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <p style={{ color: "#71717a" }}>No active map loaded.</p>
-      )}
-    </div>
+    <>
+      <div>Map</div>
+    </>
   );
+
+  // return (
+  //   <div
+  //     className="map-canvas-container"
+  //     onDragOver={(e) => {
+  //       e.preventDefault();
+  //       e.dataTransfer.dropEffect = "copy";
+  //     }}
+  //     onDragEnter={(e) => e.preventDefault()}
+  //   >
+  //     {mapUrl ? (
+  //       <div
+  //         ref={mapWrapperRef}
+  //         style={{
+  //           position: "relative",
+  //           width: "100%",
+  //           height: "100%",
+  //           display: "flex",
+  //           justifyContent: "center",
+  //           alignItems: "center",
+  //         }}
+  //       >
+  //         <img
+  //           ref={imgRef}
+  //           src={mapUrl}
+  //           alt={activeScene.name}
+  //           onLoad={updateCanvasDimensions}
+  //           style={{
+  //             maxWidth: "100%",
+  //             maxHeight: "100%",
+  //             width: "auto",
+  //             height: "auto",
+  //             objectFit: "contain",
+  //             display: "block",
+  //             pointerEvents: "none",
+  //           }}
+  //         />
+  //         <canvas
+  //           ref={canvasRef}
+  //           style={{
+  //             position: "absolute",
+  //             top: "50%",
+  //             left: "50%",
+  //             transform: "translate(-50%, -50%)",
+  //             pointerEvents: "none",
+  //           }}
+  //         />
+  //         {/* Token Layer */}
+  //         <div
+  //           style={{
+  //             position: "absolute",
+  //             top: "50%",
+  //             left: "50%",
+  //             transform: "translate(-50%, -50%)",
+  //             width: canvasRef.current?.width || "100%",
+  //             height: canvasRef.current?.height || "100%",
+  //             pointerEvents: "none",
+  //           }}
+  //         >
+  //           {activeScene.tokens?.map((token) => (
+  //             <div
+  //               key={token.id}
+  //               style={{
+  //                 position: "absolute",
+  //                 left: `${token.x}px`,
+  //                 top: `${token.y}px`,
+  //                 width: `${(activeScene.gridSize || 50) * (token.size || 1)}px`,
+  //                 height: `${(activeScene.gridSize || 50) * (token.size || 1)}px`,
+  //                 pointerEvents: "auto",
+  //                 cursor: "move",
+  //               }}
+  //             >
+  //               {token.imageUrl ? (
+  //                 <img
+  //                   src={token.imageUrl}
+  //                   alt={token.name}
+  //                   style={{
+  //                     width: "100%",
+  //                     height: "100%",
+  //                     borderRadius: "50%",
+  //                     objectFit: "cover",
+  //                   }}
+  //                 />
+  //               ) : (
+  //                 <div
+  //                   style={{
+  //                     width: "100%",
+  //                     height: "100%",
+  //                     borderRadius: "50%",
+  //                     backgroundColor: "#3b82f6",
+  //                     color: "#fff",
+  //                     display: "flex",
+  //                     alignItems: "center",
+  //                     justifyContent: "center",
+  //                     fontWeight: "bold",
+  //                     fontSize: "0.8rem",
+  //                     border: "2px solid #ffffff",
+  //                     boxSizing: "border-box",
+  //                   }}
+  //                 >
+  //                   {token.name.substring(0, 2).toUpperCase()}
+  //                 </div>
+  //               )}
+  //             </div>
+  //           ))}
+  //         </div>
+  //       </div>
+  //     ) : (
+  //       <p style={{ color: "#71717a" }}>No active map loaded.</p>
+  //     )}
+  //   </div>
+  // );
 };
