@@ -15,14 +15,19 @@ interface Token {
   isDefault?: boolean;
 }
 
-export interface Scene {
+interface Scene {
   id: string;
   name: string;
+
+  mapWidth?: number;
+  mapHeight?: number;
+
   gridSize: number;
-  gridColor: string;
   gridEnabled: boolean;
-  tokens: Token[];
+  gridColor: string;
+
   mapImage: string;
+  tokens: Token[];
 }
 
 export interface Campaign {

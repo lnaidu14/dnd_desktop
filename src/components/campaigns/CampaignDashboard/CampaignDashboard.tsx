@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   writeTextFile,
   BaseDirectory,
@@ -13,18 +13,14 @@ import {
   saveTokenAsset,
 } from "../../../utils/assets";
 import "./CampaignDashboard.css";
-import { MapCanvas } from "../MapCanvas/MapCanvas";
+import { MapGrid } from "../MapGrid/MapGrid";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
-import { DraggableToken } from "../DraggableToken/DraggableToken";
-import { DroppableGridCell } from "../DroppableGridCell/DroppableGridCell";
-import { PlacedToken } from "../PlaceToken/PlacedToken";
+import { DraggableToken } from "../Token/DraggableToken";
 import { TokenTrash } from "../TokenTrash/TokenTrash";
 
 const GRID_SIZE = 50;
-const ROWS = 20;
-const COLS = 20;
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -40,6 +36,13 @@ export function CampaignDashboard({
   const [activeTab, setActiveTab] = useState<"scenes" | "tokens" | "settings">(
     "scenes",
   );
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  const [viewportSize, setViewportSize] = useState({
+    width: 0,
+    height: 0,
+  });
   const [newSceneName, setNewSceneName] = useState("");
   const [selectedMapPath, setSelectedMapPath] = useState<string | null>(null);
   const [isAddingScene, setIsAddingScene] = useState(false);
@@ -85,8 +88,6 @@ export function CampaignDashboard({
     (s) => s.id === campaign.activeSceneId,
   );
 
-  console.log(activeScene?.tokens);
-
   const placedTokens =
     activeScene?.tokens?.filter(
       (token) => token.row !== undefined && token.col !== undefined,
@@ -130,6 +131,31 @@ export function CampaignDashboard({
         }),
     );
   }
+
+  useEffect(() => {
+    if (!viewportRef.current) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setViewportSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
+    });
+
+    observer.observe(viewportRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const gridSize = activeScene?.gridSize ?? 50;
+
+  const cols = Math.ceil((activeScene?.mapWidth ?? 0) / gridSize);
+  const rows = Math.ceil((activeScene?.mapHeight ?? 0) / gridSize);
+
+  useEffect(() => {
+    console.log(viewportSize, rows, cols);
+    console.log(viewportRef.current);
+  }, [viewportSize]);
 
   useEffect(() => {
     async function loadTokens() {
@@ -429,23 +455,24 @@ export function CampaignDashboard({
 
   return (
     <div className="workspace-container">
-      {/* Workspace Header */}
-      <div className="workspace-header">
-        <button onClick={onBack} className="btn-secondary">
-          ← Back to Campaigns
-        </button>
-        <h2 style={{ margin: 0 }}>{campaign.name}</h2>
-      </div>
+      <DragDropProvider
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Workspace Header */}
+        <div className="workspace-header">
+          <button onClick={onBack} className="btn-secondary">
+            ← Back to Campaigns
+          </button>
+          <h2 style={{ margin: 0 }}>{campaign.name}</h2>
+          <TokenTrash />
+        </div>
 
-      {/* Workspace Body */}
-      <div className="workspace-body">
-        {/* Collapsible Sidebar Inspector */}
-        <DragDropProvider
-          onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
+        {/* Workspace Body */}
+        <div className="workspace-body">
+          {/* Collapsible Sidebar Inspector */}
           <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
             <div className="sidebar-header">
               {!isSidebarCollapsed && (
@@ -730,36 +757,14 @@ export function CampaignDashboard({
           </aside>
 
           {/* Viewport Map Area */}
-          <main className="map-viewport">
+          <main ref={viewportRef} className="map-viewport">
             {activeScene ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${COLS}, ${GRID_SIZE}px)`,
-                  gridTemplateRows: `repeat(${ROWS}, ${GRID_SIZE}px)`,
-                  width: COLS * GRID_SIZE,
-                  height: ROWS * GRID_SIZE,
-                }}
-              >
-                {Array.from({ length: ROWS }).map((_, row) =>
-                  Array.from({ length: COLS }).map((_, col) => (
-                    <DroppableGridCell
-                      key={`${row}-${col}`}
-                      row={row}
-                      col={col}
-                      size={GRID_SIZE}
-                    >
-                      {placedTokens
-                        .filter(
-                          (token) => token.row === row && token.col === col,
-                        )
-                        .map((token) => (
-                          <PlacedToken key={token.id} token={token} />
-                        ))}
-                    </DroppableGridCell>
-                  )),
-                )}
-              </div>
+              <MapGrid
+                rows={rows}
+                cols={cols}
+                cellSize={GRID_SIZE}
+                tokens={placedTokens}
+              />
             ) : (
               <div className="empty-viewport-message">
                 <p style={{ color: "#71717a" }}>
@@ -768,9 +773,8 @@ export function CampaignDashboard({
               </div>
             )}
           </main>
-          <TokenTrash />
-        </DragDropProvider>
-      </div>
+        </div>
+      </DragDropProvider>
     </div>
   );
 }

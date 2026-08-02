@@ -1,35 +1,26 @@
 import { useDroppable } from "@dnd-kit/react";
 import { ReactNode } from "react";
+import "./GridCell.css"
 
-interface DroppableGridCellProps {
+interface GridCellProps {
   row: number;
   col: number;
   size: number;
-  children?: ReactNode;
+  children: ReactNode;
 }
-
-export function DroppableGridCell({
-  row,
-  col,
-  size,
-  children,
-}: DroppableGridCellProps) {
+export function GridCell({ row, col, size, children }: GridCellProps) {
   const { ref } = useDroppable({
     id: `cell-${row}-${col}`,
-    data: {
-      row,
-      col,
-    },
+    data: { row, col },
   });
 
   return (
     <div
       ref={ref}
+      className="grid-cell"
       style={{
         width: size,
         height: size,
-        boxSizing: "border-box",
-        border: "1px solid rgba(255,0,0,0.2)",
       }}
     >
       {children}

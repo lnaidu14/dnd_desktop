@@ -1,4 +1,5 @@
 import { useDroppable } from "@dnd-kit/react";
+import { Trash2 } from "lucide-react";
 
 export function TokenTrash() {
   const { ref } = useDroppable({
@@ -10,15 +11,17 @@ export function TokenTrash() {
       ref={ref}
       style={{
         height: 50,
+        width: 50,
         marginTop: 10,
-        background: "#441111",
+        background: "red",
         color: "white",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        borderRadius: "10%",
       }}
     >
-      🗑 Drop token here
+      <Trash2 />
     </div>
   );
 }
