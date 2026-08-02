@@ -1,11 +1,18 @@
-export interface Token {
+interface Token {
   id: string;
+  sourceId?: string;
+
   name: string;
-  imageUrl: string;
-  x: number;
-  y: number;
-  size: number;
-  color?: string;
+  imageUrl?: string;
+  relativePath?: string;
+
+  x?: number;
+  y?: number;
+  size?: number;
+
+  row?: number;
+  col?: number;
+  isDefault?: boolean;
 }
 
 export interface Scene {

@@ -332,3 +332,28 @@
   align-items: center;
   justify-content: center;
 }
+
+.token-section {
+  margin-bottom: 12px;
+}
+
+.token-section-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  background: transparent;
+  border: none;
+  color: inherit;
+
+  padding: 6px 4px;
+  cursor: pointer;
+
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.token-section-header:hover {
+  background: rgba(255,255,255,0.05);
+}

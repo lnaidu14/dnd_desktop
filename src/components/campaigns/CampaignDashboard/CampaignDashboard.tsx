@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import {
+  writeTextFile,
+  BaseDirectory,
+  exists,
+  readDir,
+} from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
 import { Campaign, Scene, Token } from "../../../types/campaigns";
 import {
@@ -14,6 +19,12 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
 import { DraggableToken } from "../DraggableToken/DraggableToken";
 import { DroppableGridCell } from "../DroppableGridCell/DroppableGridCell";
+import { PlacedToken } from "../PlaceToken/PlacedToken";
+import { TokenTrash } from "../TokenTrash/TokenTrash";
+
+const GRID_SIZE = 50;
+const ROWS = 20;
+const COLS = 20;
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -34,16 +45,105 @@ export function CampaignDashboard({
   const [isAddingScene, setIsAddingScene] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
-  const [availableTokens, setAvailableTokens] = useState<Token[]>([
-    { id: "1", name: "Goblin", imageUrl: "", x: 0, y: 0, size: 0 },
-    { id: "2", name: "Hero", imageUrl: "", x: 0, y: 0, size: 0 },
-    { id: "3", name: "Chest", imageUrl: "", x: 0, y: 0, size: 0 },
-    { id: "4", name: "Dragon", imageUrl: "", x: 0, y: 0, size: 0 },
-  ]);
+  const [defaultTokensExpanded, setDefaultTokensExpanded] = useState(true);
+  const [customTokensExpanded, setCustomTokensExpanded] = useState(true);
+  const defaultTokens: Token[] = [
+    {
+      id: "default_goblin",
+      name: "Goblin",
+      imageUrl: "/tokens/goblin.jfif",
+      x: 0,
+      y: 0,
+      size: 0,
+      isDefault: true,
+    },
+    {
+      id: "default_chest",
+      name: "Chest",
+      imageUrl: "/tokens/chest.jpg",
+      x: 0,
+      y: 0,
+      size: 0,
+      isDefault: true,
+    },
+    {
+      id: "default_dragon",
+      name: "Dragon",
+      imageUrl: "/tokens/dragon.jpg",
+      x: 0,
+      y: 0,
+      size: 0,
+      isDefault: true,
+    },
+  ];
 
+  const [availableTokens, setAvailableTokens] =
+    useState<Token[]>(defaultTokens);
+
+  const [currentTokenDragging, setCurrentTokenDragging] = useState("");
   const activeScene = campaign.scenes.find(
     (s) => s.id === campaign.activeSceneId,
   );
+
+  console.log(activeScene?.tokens);
+
+  const placedTokens =
+    activeScene?.tokens?.filter(
+      (token) => token.row !== undefined && token.col !== undefined,
+    ) ?? [];
+
+  async function loadTokenAssets(): Promise<Token[]> {
+    const tokenDir = "assets/tokens";
+
+    const existsDir = await exists(tokenDir, {
+      baseDir: BaseDirectory.AppData,
+    });
+
+    if (!existsDir) {
+      return [];
+    }
+
+    const files = await readDir(tokenDir, {
+      baseDir: BaseDirectory.AppData,
+    });
+
+    const appData = await appDataDir();
+
+    return Promise.all(
+      files
+        .filter((file) => file.name)
+        .map(async (file) => {
+          const relativePath = `${tokenDir}/${file.name}`;
+
+          const fullPath = await join(appData, relativePath);
+
+          return {
+            id: `token_${file.name}`,
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            relativePath,
+            imageUrl: convertFileSrc(fullPath),
+            x: 0,
+            y: 0,
+            size: 0,
+            isDefault: false,
+          };
+        }),
+    );
+  }
+
+  useEffect(() => {
+    async function loadTokens() {
+      try {
+        const tokens = await loadTokenAssets();
+
+        setAvailableTokens([...defaultTokens, ...tokens]);
+      } catch (err) {
+        console.error("Failed loading tokens:", err);
+      }
+    }
+
+    loadTokens();
+  }, []);
 
   // Load the map asset for the currently active scene
   useEffect(() => {
@@ -69,16 +169,15 @@ export function CampaignDashboard({
       });
 
       if (selected && typeof selected === "string") {
-        // 1. Copy to AppData storage
         const relativePath = await saveTokenAsset(selected);
 
-        // 2. Resolve to absolute path on disk
         const appData = await appDataDir();
-        const cleanPath = relativePath.replace(/^[/\\]+/, "");
-        const fullAbsolutePath = await join(appData, cleanPath);
 
-        // 3. Convert absolute path for WebView rendering
-        const displayUrl = convertFileSrc(fullAbsolutePath);
+        const cleanPath = relativePath.replace(/^[/\\]+/, "");
+
+        const fullPath = await join(appData, cleanPath);
+
+        const displayUrl = convertFileSrc(fullPath);
 
         const fileName =
           selected.split(/[/\\]/).pop()?.split(".")[0] || "New Token";
@@ -93,6 +192,7 @@ export function CampaignDashboard({
             x: 0,
             y: 0,
             size: 0,
+            isDefault: false,
           },
         ]);
       }
@@ -112,10 +212,11 @@ export function CampaignDashboard({
   async function saveAndEmit(updatedCampaign: Campaign) {
     try {
       await writeTextFile(
-        `campaigns/${campaign.id}.json`,
+        `campaigns/${updatedCampaign.id}.json`,
         JSON.stringify(updatedCampaign, null, 2),
         { baseDir: BaseDirectory.AppData },
       );
+
       onUpdateCampaign(updatedCampaign);
     } catch (err) {
       console.error("Failed to save campaign JSON:", err);
@@ -126,13 +227,11 @@ export function CampaignDashboard({
   async function handleUpdateActiveScene(updatedFields: Partial<Scene>) {
     if (!campaign.activeSceneId) return;
 
-    const updatedScenes = campaign.scenes.map((sc) =>
-      sc.id === campaign.activeSceneId ? { ...sc, ...updatedFields } : sc,
-    );
-
     const updatedCampaign: Campaign = {
       ...campaign,
-      scenes: updatedScenes,
+      scenes: campaign.scenes.map((sc) =>
+        sc.id === campaign.activeSceneId ? { ...sc, ...updatedFields } : sc,
+      ),
     };
 
     await saveAndEmit(updatedCampaign);
@@ -215,6 +314,119 @@ export function CampaignDashboard({
     setIsAddingScene(false);
   }
 
+  async function handleDragStart(event: any) {
+    if (event.cancelled) return;
+
+    const { id } = event.operation.source;
+    setCurrentTokenDragging(id);
+  }
+
+  async function handleDragMove(event: any) {
+    if (event.cancelled) return;
+  }
+
+  async function handleDragOver(event: any) {
+    if (event.cancelled) return;
+  }
+
+  async function handleDragEnd(event: any) {
+    if (event.canceled) return;
+
+    const { source, target } = event.operation;
+
+    if (!target || !activeScene) {
+      setCurrentTokenDragging("");
+      return;
+    }
+
+    const token = source.data;
+
+    // Dropped into trash
+    if (target.id === "trash") {
+      const isExistingToken = activeScene.tokens?.some(
+        (t) => t.id === token.id,
+      );
+
+      if (isExistingToken) {
+        // Remove from scene
+        const updatedTokens = activeScene.tokens.filter(
+          (t) => t.id !== token.id,
+        );
+
+        await handleUpdateActiveScene({
+          tokens: updatedTokens,
+        });
+
+        // Return token to sidebar library
+        setAvailableTokens((prev) => {
+          const libraryId = token.sourceId ?? token.id;
+
+          // Prevent duplicate sidebar tokens
+          if (prev.some((t) => t.id === libraryId)) {
+            return prev;
+          }
+
+          return [
+            ...prev,
+            {
+              id: libraryId,
+              name: token.name,
+              imageUrl: token.imageUrl,
+              relativePath: token.relativePath,
+              x: 0,
+              y: 0,
+              size: 0,
+              isDefault: token.isDefault ?? false,
+            },
+          ];
+        });
+      }
+
+      setCurrentTokenDragging("");
+      return;
+    }
+
+    const isExistingToken = activeScene.tokens?.some((t) => t.id === token.id);
+
+    // Moving an existing token
+    if (isExistingToken) {
+      const updatedTokens = activeScene.tokens.map((t) =>
+        t.id === token.id
+          ? {
+              ...t,
+              row: target.data.row,
+              col: target.data.col,
+            }
+          : t,
+      );
+
+      await handleUpdateActiveScene({
+        tokens: updatedTokens,
+      });
+
+      setCurrentTokenDragging("");
+      return;
+    }
+
+    // Adding a new token from library
+    const placedToken = {
+      ...token,
+      id: crypto.randomUUID(),
+      sourceId: token.id,
+      row: target.data.row,
+      col: target.data.col,
+    };
+
+    await handleUpdateActiveScene({
+      tokens: [...(activeScene.tokens ?? []), placedToken],
+    });
+
+    // Remove from sidebar
+    setAvailableTokens((prev) => prev.filter((t) => t.id !== token.id));
+
+    setCurrentTokenDragging("");
+  }
+
   return (
     <div className="workspace-container">
       {/* Workspace Header */}
@@ -228,7 +440,12 @@ export function CampaignDashboard({
       {/* Workspace Body */}
       <div className="workspace-body">
         {/* Collapsible Sidebar Inspector */}
-        <DragDropProvider>
+        <DragDropProvider
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
           <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
             <div className="sidebar-header">
               {!isSidebarCollapsed && (
@@ -371,6 +588,7 @@ export function CampaignDashboard({
                       <h4 className="tab-section-title" style={{ margin: 0 }}>
                         Token Library
                       </h4>
+
                       <button
                         className="btn-secondary"
                         style={{ padding: "4px 8px", fontSize: "0.8rem" }}
@@ -379,11 +597,82 @@ export function CampaignDashboard({
                         + Import Token
                       </button>
                     </div>
+
                     <p className="tab-section-subtitle">
                       Drag any token onto the active map view.
                     </p>
 
-                    <DraggableToken tokens={availableTokens} />
+                    {/* Default Tokens */}
+                    <div className="token-section">
+                      <button
+                        className="token-section-header"
+                        onClick={() =>
+                          setDefaultTokensExpanded((prev) => !prev)
+                        }
+                      >
+                        <span>
+                          {defaultTokensExpanded ? "▼" : "▶"} Default Tokens
+                        </span>
+
+                        <span>
+                          {
+                            availableTokens.filter((token) => token.isDefault)
+                              .length
+                          }
+                        </span>
+                      </button>
+
+                      {defaultTokensExpanded && (
+                        <>
+                          <p className="tab-section-subtitle">
+                            Built-in game tokens.
+                          </p>
+
+                          <div className="token-grid">
+                            {availableTokens
+                              .filter((token) => token.isDefault)
+                              .map((token) => (
+                                <DraggableToken key={token.id} token={token} />
+                              ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Custom Tokens */}
+                    <div className="token-section">
+                      <button
+                        className="token-section-header"
+                        onClick={() => setCustomTokensExpanded((prev) => !prev)}
+                      >
+                        <span>
+                          {customTokensExpanded ? "▼" : "▶"} Custom Tokens
+                        </span>
+
+                        <span>
+                          {
+                            availableTokens.filter((token) => !token.isDefault)
+                              .length
+                          }
+                        </span>
+                      </button>
+
+                      {customTokensExpanded && (
+                        <>
+                          <p className="tab-section-subtitle">
+                            Imported tokens.
+                          </p>
+
+                          <div className="token-grid">
+                            {availableTokens
+                              .filter((token) => !token.isDefault)
+                              .map((token) => (
+                                <DraggableToken key={token.id} token={token} />
+                              ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -441,19 +730,36 @@ export function CampaignDashboard({
           </aside>
 
           {/* Viewport Map Area */}
-          <main
-            className="map-viewport"
-            onDragOver={(e) => {
-              e.preventDefault();
-              console.log("Hovering over map drop zone");
-              e.dataTransfer.dropEffect = "copy";
-            }}
-            onDragEnter={(e) => e.preventDefault()}
-          >
+          <main className="map-viewport">
             {activeScene ? (
-              <DroppableGridCell row={1} col={1} size={40}>
-                <MapCanvas activeScene={activeScene} mapUrl={activeMapUrl} />
-              </DroppableGridCell>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${COLS}, ${GRID_SIZE}px)`,
+                  gridTemplateRows: `repeat(${ROWS}, ${GRID_SIZE}px)`,
+                  width: COLS * GRID_SIZE,
+                  height: ROWS * GRID_SIZE,
+                }}
+              >
+                {Array.from({ length: ROWS }).map((_, row) =>
+                  Array.from({ length: COLS }).map((_, col) => (
+                    <DroppableGridCell
+                      key={`${row}-${col}`}
+                      row={row}
+                      col={col}
+                      size={GRID_SIZE}
+                    >
+                      {placedTokens
+                        .filter(
+                          (token) => token.row === row && token.col === col,
+                        )
+                        .map((token) => (
+                          <PlacedToken key={token.id} token={token} />
+                        ))}
+                    </DroppableGridCell>
+                  )),
+                )}
+              </div>
             ) : (
               <div className="empty-viewport-message">
                 <p style={{ color: "#71717a" }}>
@@ -462,6 +768,7 @@ export function CampaignDashboard({
               </div>
             )}
           </main>
+          <TokenTrash />
         </DragDropProvider>
       </div>
     </div>

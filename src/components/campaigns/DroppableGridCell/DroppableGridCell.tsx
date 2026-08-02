@@ -5,7 +5,7 @@ interface DroppableGridCellProps {
   row: number;
   col: number;
   size: number;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function DroppableGridCell({
@@ -15,7 +15,7 @@ export function DroppableGridCell({
   children,
 }: DroppableGridCellProps) {
   const { ref } = useDroppable({
-    id: `${row}-${col}`,
+    id: `cell-${row}-${col}`,
     data: {
       row,
       col,
