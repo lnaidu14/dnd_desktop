@@ -5,13 +5,14 @@ import {
   exists,
   readDir,
 } from "@tauri-apps/plugin-fs";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, confirm } from "@tauri-apps/plugin-dialog";
 import { Campaign, Scene, Token } from "../../../types/campaigns";
 import {
   saveMapAsset,
   getAssetUrl,
   saveTokenAsset,
   getImageSize,
+  deleteMapAsset,
 } from "../../../utils/assets";
 import "./CampaignDashboard.css";
 import { MapGrid } from "../MapGrid/MapGrid";
@@ -94,7 +95,7 @@ export function CampaignDashboard({
     ) ?? [];
 
   async function loadTokenAssets(): Promise<Token[]> {
-    const tokenDir = "assets/tokens";
+    const tokenDir = `campaigns/${campaign.id}/assets/tokens`;
 
     const existsDir = await exists(tokenDir, {
       baseDir: BaseDirectory.AppData,
@@ -166,7 +167,6 @@ export function CampaignDashboard({
     loadTokens();
   }, []);
 
-  // Load URL
   useEffect(() => {
     console.log("activeScene: ", activeScene);
     if (!activeScene?.mapImage) {
@@ -177,13 +177,8 @@ export function CampaignDashboard({
     getAssetUrl(activeScene.mapImage).then((mapFullPathUrl) =>
       setActiveMapUrl(mapFullPathUrl),
     );
-  }, [activeScene?.mapImage]);
+  }, [activeScene, activeMapUrl]);
 
-  useEffect(() => {
-    console.log("mapUrl: ", activeMapUrl);
-  }, [activeMapUrl]);
-
-  // Once URL exists, get image size
   useEffect(() => {
     if (!activeMapUrl || !activeScene) return;
 
@@ -203,7 +198,6 @@ export function CampaignDashboard({
     );
   }, [viewportSize]);
 
-  // Function to handle adding a token image file via Tauri file picker
   async function handleImportToken() {
     try {
       const selected = await open({
@@ -214,7 +208,7 @@ export function CampaignDashboard({
       });
 
       if (selected && typeof selected === "string") {
-        const relativePath = await saveTokenAsset(selected);
+        const relativePath = await saveTokenAsset(campaign.id, selected);
 
         const appData = await appDataDir();
 
@@ -257,7 +251,7 @@ export function CampaignDashboard({
   async function saveAndEmit(updatedCampaign: Campaign) {
     try {
       await writeTextFile(
-        `campaigns/${updatedCampaign.id}.json`,
+        `campaigns/${campaign.id}/${updatedCampaign.id}.json`,
         JSON.stringify(updatedCampaign, null, 2),
         { baseDir: BaseDirectory.AppData },
       );
@@ -304,11 +298,21 @@ export function CampaignDashboard({
     sceneIdToDelete: string,
   ) {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this scene?")) return;
+
+    const confirmed = await confirm(
+      "Are you sure you want to delete this scene?",
+      {
+        title: "Delete Scene",
+        kind: "warning",
+      },
+    );
+
+    if (!confirmed) return;
 
     const remainingScenes = campaign.scenes.filter(
       (s) => s.id !== sceneIdToDelete,
     );
+
     const nextActiveId =
       campaign.activeSceneId === sceneIdToDelete
         ? remainingScenes[0]?.id
@@ -319,6 +323,8 @@ export function CampaignDashboard({
       scenes: remainingScenes,
       activeSceneId: nextActiveId,
     };
+
+    if (activeScene) await deleteMapAsset(activeScene.mapImage);
 
     await saveAndEmit(updatedCampaign);
   }
@@ -331,7 +337,7 @@ export function CampaignDashboard({
 
     if (selectedMapPath) {
       try {
-        savedRelativePath = await saveMapAsset(selectedMapPath);
+        savedRelativePath = await saveMapAsset(campaign.id, selectedMapPath);
       } catch (err) {
         console.error("Failed to copy map file to assets:", err);
       }
@@ -340,7 +346,7 @@ export function CampaignDashboard({
     const newScene: Scene = {
       id: `scene_${Date.now()}`,
       name: newSceneName.trim(),
-      gridSize: 50,
+      gridSize: displayCellSize,
       gridColor: "#ffffffff",
       gridEnabled: false,
       mapImage: savedRelativePath,
@@ -364,14 +370,6 @@ export function CampaignDashboard({
 
     const { id } = event.operation.source;
     setCurrentTokenDragging(id);
-  }
-
-  async function handleDragMove(event: any) {
-    if (event.cancelled) return;
-  }
-
-  async function handleDragOver(event: any) {
-    if (event.cancelled) return;
   }
 
   async function handleDragEnd(event: any) {
@@ -474,12 +472,7 @@ export function CampaignDashboard({
 
   return (
     <div className="workspace-container">
-      <DragDropProvider
-        onDragStart={handleDragStart}
-        onDragMove={handleDragMove}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
+      <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Workspace Header */}
         <div className="workspace-header">
           <button onClick={onBack} className="btn-secondary">

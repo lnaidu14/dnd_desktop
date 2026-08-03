@@ -1,4 +1,4 @@
-import { mkdir, exists, copyFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { mkdir, exists, copyFile, BaseDirectory, remove } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
@@ -17,30 +17,43 @@ export async function getImageSize(url: string) {
   });
 }
 
-// Copy selected image file into AppData/assets/maps/ and return relative path
-export async function saveMapAsset(sourceFilePath: string): Promise<string> {
-  const mapsDirExists = await exists("assets/maps", {
+export async function saveMapAsset(campaignId: string, sourceFilePath: string): Promise<string> {
+  const mapsDirExists = await exists(`campaigns/${campaignId}/assets/maps`, {
     baseDir: BaseDirectory.AppData,
   });
 
   if (!mapsDirExists) {
-    await mkdir("assets/maps", {
+    await mkdir(`campaigns/${campaignId}/assets/maps`, {
       baseDir: BaseDirectory.AppData,
       recursive: true,
     });
   }
 
-  // Extract original filename or generate a clean target name
   const fileName =
     sourceFilePath.split(/[/\\]/).pop() || `map_${Date.now()}.png`;
-  const relativeDestination = `assets/maps/${Date.now()}_${fileName}`;
+  const relativeDestination = `campaigns/${campaignId}/assets/maps/${fileName}`;
 
-  // Copy file from original location to AppData/assets/maps/
+  const alreadyExists = await exists(relativeDestination, {
+    baseDir: BaseDirectory.AppData,
+  });
+
+  if (alreadyExists) {
+    console.error(`Map "${fileName}" has already been imported.`);
+    return relativeDestination
+  }
+
   await copyFile(sourceFilePath, relativeDestination, {
     toPathBaseDir: BaseDirectory.AppData,
   });
 
   return relativeDestination;
+}
+
+export async function deleteMapAsset(mapPath: string): Promise<void> {
+  await remove(mapPath, {
+    baseDir: BaseDirectory.AppData,
+    recursive: true,
+  });
 }
 
 // Convert a relative path (e.g. "assets/maps/xxx.png") to an image src URL
@@ -55,13 +68,13 @@ export async function getAssetUrl(relativePath: string): Promise<string> {
 }
 
 // Copy selected token file into AppData/assets/tokens/ and return relative path
-export async function saveTokenAsset(sourceFilePath: string): Promise<string> {
-  const tokensDirExists = await exists("assets/tokens", {
+export async function saveTokenAsset(campaignId: string, sourceFilePath: string): Promise<string> {
+  const tokensDirExists = await exists(`campaigns/${campaignId}/assets/tokens`, {
     baseDir: BaseDirectory.AppData,
   });
 
   if (!tokensDirExists) {
-    await mkdir("assets/tokens", {
+    await mkdir(`campaigns/${campaignId}/assets/tokens`, {
       baseDir: BaseDirectory.AppData,
       recursive: true,
     });
@@ -69,7 +82,8 @@ export async function saveTokenAsset(sourceFilePath: string): Promise<string> {
 
   const fileName =
     sourceFilePath.split(/[/\\]/).pop() || `token_${Date.now()}.png`;
-  const relativeDestination = `assets/tokens/${fileName}`;
+
+  const relativeDestination = `campaigns/${campaignId}/assets/tokens/${fileName}`;
 
   const alreadyExists = await exists(relativeDestination, {
     baseDir: BaseDirectory.AppData,

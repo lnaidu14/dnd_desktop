@@ -21,7 +21,10 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/assets/maps/*", "$APPDATA/assets/tokens/*"]
+        "scope": [
+          "$APPDATA/campaigns/*/assets/maps/*",
+          "$APPDATA/campaigns/*/assets/tokens/*"
+        ]
       }
     }
   },

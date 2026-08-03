@@ -38,12 +38,12 @@ function App() {
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1. Helper to fetch all saved campaigns from AppData/campaigns/
   async function loadAllCampaigns(lastOpenedId?: string | null) {
     try {
       const dirExists = await exists("campaigns", {
         baseDir: BaseDirectory.AppData,
       });
+
       if (!dirExists) {
         await mkdir("campaigns", {
           baseDir: BaseDirectory.AppData,
@@ -55,21 +55,30 @@ function App() {
       const entries = await readDir("campaigns", {
         baseDir: BaseDirectory.AppData,
       });
+
       const loadedCampaigns: Campaign[] = [];
 
       for (const entry of entries) {
-        if (entry.name?.endsWith(".json")) {
-          const content = await readTextFile(`campaigns/${entry.name}`, {
+        if (entry.isDirectory) {
+          const campaignFile = `campaigns/${entry.name}/${entry.name}.json`;
+
+          const fileExists = await exists(campaignFile, {
             baseDir: BaseDirectory.AppData,
           });
-          const campaignData: Campaign = JSON.parse(content);
-          loadedCampaigns.push(campaignData);
+
+          if (fileExists) {
+            const content = await readTextFile(campaignFile, {
+              baseDir: BaseDirectory.AppData,
+            });
+
+            const campaignData: Campaign = JSON.parse(content);
+            loadedCampaigns.push(campaignData);
+          }
         }
       }
 
       setCampaigns(loadedCampaigns);
 
-      // Restore last opened campaign if it exists
       if (lastOpenedId) {
         const found = loadedCampaigns.find((c) => c.id === lastOpenedId);
         if (found) setActiveCampaign(found);
@@ -93,7 +102,7 @@ function App() {
 
     try {
       // 1. Delete the JSON file from disk (cascades to all scenes inside)
-      await remove(`campaigns/${campaignId}.json`, {
+      await remove(`campaigns/${campaignId}/${campaignId}.json`, {
         baseDir: BaseDirectory.AppData,
       });
 

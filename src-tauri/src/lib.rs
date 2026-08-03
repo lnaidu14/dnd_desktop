@@ -13,9 +13,6 @@ fn initialize_local_directories(app: &tauri::App) -> Result<(), Box<dyn std::err
     // 2. Define the subdirectories we want to enforce
     let directories = [
         app_data_path.join("campaigns"),
-        app_data_path.join("assets/maps"),
-        app_data_path.join("assets/tokens"),
-        app_data_path.join("tables"),
     ];
 
     // 3. Loop through and create them (this behaves like `mkdir -p` and won't overwrite existing data)

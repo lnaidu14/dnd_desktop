@@ -69,6 +69,23 @@ export function CreateCampaignModal({
         });
       }
 
+      const assetsDir = `${campaignDir}/assets`;
+
+      await mkdir(`${campaignDir}/assets`, {
+        baseDir: BaseDirectory.AppData,
+        recursive: true,
+      });
+
+      await mkdir(`${assetsDir}/tokens`, {
+        baseDir: BaseDirectory.AppData,
+        recursive: true,
+      });
+
+      await mkdir(`${assetsDir}/maps`, {
+        baseDir: BaseDirectory.AppData,
+        recursive: true,
+      });
+
       await writeTextFile(
         `${campaignDir}/${id}.json`,
         JSON.stringify(newCampaign, null, 2),
