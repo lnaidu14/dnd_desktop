@@ -11,6 +11,7 @@ import {
   saveMapAsset,
   getAssetUrl,
   saveTokenAsset,
+  getImageSize,
 } from "../../../utils/assets";
 import "./CampaignDashboard.css";
 import { MapGrid } from "../MapGrid/MapGrid";
@@ -19,8 +20,6 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
 import { DraggableToken } from "../Token/DraggableToken";
 import { TokenTrash } from "../TokenTrash/TokenTrash";
-
-const GRID_SIZE = 50;
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -50,6 +49,7 @@ export function CampaignDashboard({
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
   const [defaultTokensExpanded, setDefaultTokensExpanded] = useState(true);
   const [customTokensExpanded, setCustomTokensExpanded] = useState(true);
+  const [displayCellSize, setDisplayCellSize] = useState(0);
   const defaultTokens: Token[] = [
     {
       id: "default_goblin",
@@ -153,11 +153,6 @@ export function CampaignDashboard({
   const rows = Math.ceil((activeScene?.mapHeight ?? 0) / gridSize);
 
   useEffect(() => {
-    console.log(viewportSize, rows, cols);
-    console.log(viewportRef.current);
-  }, [viewportSize]);
-
-  useEffect(() => {
     async function loadTokens() {
       try {
         const tokens = await loadTokenAssets();
@@ -171,18 +166,42 @@ export function CampaignDashboard({
     loadTokens();
   }, []);
 
-  // Load the map asset for the currently active scene
+  // Load URL
   useEffect(() => {
-    if (activeScene?.mapImage) {
-      getAssetUrl(activeScene.mapImage)
-        .then((url) => {
-          setActiveMapUrl(url);
-        })
-        .catch((err) => console.error("Failed to load map asset:", err));
-    } else {
+    console.log("activeScene: ", activeScene);
+    if (!activeScene?.mapImage) {
       setActiveMapUrl(null);
+      return;
     }
-  }, [activeScene?.id, activeScene?.mapImage]);
+
+    getAssetUrl(activeScene.mapImage).then((mapFullPathUrl) =>
+      setActiveMapUrl(mapFullPathUrl),
+    );
+  }, [activeScene?.mapImage]);
+
+  useEffect(() => {
+    console.log("mapUrl: ", activeMapUrl);
+  }, [activeMapUrl]);
+
+  // Once URL exists, get image size
+  useEffect(() => {
+    if (!activeMapUrl || !activeScene) return;
+
+    getImageSize(activeMapUrl).then(async ({ width, height }) => {
+      if (activeScene.mapWidth !== width || activeScene.mapHeight !== height) {
+        await handleUpdateActiveScene({
+          mapWidth: width,
+          mapHeight: height,
+        });
+      }
+    });
+  }, [activeMapUrl]);
+
+  useEffect(() => {
+    setDisplayCellSize(
+      Math.min(viewportSize.width / cols, viewportSize.height / rows),
+    );
+  }, [viewportSize]);
 
   // Function to handle adding a token image file via Tauri file picker
   async function handleImportToken() {
@@ -760,9 +779,10 @@ export function CampaignDashboard({
           <main ref={viewportRef} className="map-viewport">
             {activeScene ? (
               <MapGrid
+                mapUrl={activeMapUrl}
                 rows={rows}
                 cols={cols}
-                cellSize={GRID_SIZE}
+                cellSize={displayCellSize}
                 tokens={placedTokens}
               />
             ) : (

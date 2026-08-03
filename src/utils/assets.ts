@@ -2,6 +2,21 @@ import { mkdir, exists, copyFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
+export async function getImageSize(url: string) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () =>
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 // Copy selected image file into AppData/assets/maps/ and return relative path
 export async function saveMapAsset(sourceFilePath: string): Promise<string> {
   const mapsDirExists = await exists("assets/maps", {
@@ -35,7 +50,7 @@ export async function getAssetUrl(relativePath: string): Promise<string> {
   // Clean leading slashes/backslashes to avoid path duplication
   const cleanRelativePath = relativePath.replace(/^[/\\]+/, "");
   const fullPath = await join(appData, cleanRelativePath);
-
+  console.log("fullPath: ", convertFileSrc(fullPath))
   return convertFileSrc(fullPath);
 }
 
