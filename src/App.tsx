@@ -8,7 +8,7 @@ import {
   BaseDirectory,
 } from "@tauri-apps/plugin-fs";
 import { CreateCampaignModal } from "./components/campaigns/CreateCampaignModal/CreateCampaignModal";
-import { CampaignDashboard } from "./components/campaigns/CampaignDashboard/CampaignDashboard";
+import { CampaignDashboard } from "./components/dashboard/CampaignDashboard/CampaignDashboard";
 import { Campaign } from "./types/campaigns";
 import { remove } from "@tauri-apps/plugin-fs";
 import "./App.css";

@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/react";
 import { ReactNode } from "react";
-import "./GridCell.css"
+import "./GridCell.css";
 
 interface GridCellProps {
   row: number;
