@@ -6,32 +6,41 @@ import {
   exists,
 } from "@tauri-apps/plugin-fs";
 
-export interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  created_at: string;
-  updatedAt: string;
-  active_scene_id: string | null;
-  scenes: any[];
-  notes: string;
-}
+import { useForm } from "@mantine/form";
+import { Campaign } from "../../../types/campaigns";
+import { Button, SimpleGrid, Textarea, TextInput } from "@mantine/core";
 
 interface CreateCampaignModalProps {
   onCampaignCreated: (campaign: Campaign) => void;
   onClose: () => void;
 }
 
+interface CampaignFormValues {
+  name: string;
+  description: string;
+}
+
 export function CreateCampaignModal({
   onCampaignCreated,
   onClose,
 }: CreateCampaignModalProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  async function handleCreateCampaign(e: React.FormEvent) {
-    e.preventDefault();
+  const campaignForm = useForm<CampaignFormValues>({
+    mode: "uncontrolled",
+    initialValues: {
+      name: "",
+      description: "",
+    },
+
+    validate: {
+      name: (value) =>
+        value.length < 1 ? "Name must have at least 1 letter" : null,
+    },
+  });
+
+  async function handleCreateCampaign(values: CampaignFormValues) {
+    const { name, description } = values;
     if (!name.trim()) return;
 
     setIsSaving(true);
@@ -53,11 +62,9 @@ export function CreateCampaignModal({
         id,
         name: name.trim(),
         description: description.trim(),
-        created_at: now,
         updatedAt: now,
-        active_scene_id: null,
+        activeSceneId: "",
         scenes: [],
-        notes: "",
       };
 
       const campaignDir = `campaigns/${id}`;
@@ -126,67 +133,28 @@ export function CreateCampaignModal({
       >
         <h3>Create New Campaign</h3>
 
-        <form
-          onSubmit={handleCreateCampaign}
-          style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-        >
-          <label>
-            Name:
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Curse of Strahd"
-              required
-              style={{ width: "100%", padding: "8px", marginTop: "4px" }}
-              autoFocus
-            />
-          </label>
-
-          <label>
-            Description:
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief summary..."
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "4px",
-                height: "80px",
-              }}
-            />
-          </label>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "8px",
-              marginTop: "12px",
-            }}
-          >
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ padding: "8px 12px", cursor: "pointer" }}
-            >
+        <form onSubmit={campaignForm.onSubmit(handleCreateCampaign)}>
+          <TextInput
+            label="Name"
+            placeholder="e.g., Curse of Strahd"
+            key={campaignForm.key("name")}
+            {...campaignForm.getInputProps("name")}
+          />
+          <Textarea
+            mt="sm"
+            label="Description"
+            placeholder="Brief summary..."
+            key={campaignForm.key("description")}
+            {...campaignForm.getInputProps("description")}
+          />
+          <SimpleGrid cols={2}>
+            <Button mt="sm" onClick={onClose} color="red">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer",
-                background: "#2196F3",
-                color: "white",
-                border: "none",
-              }}
-            >
-              {isSaving ? "Creating..." : "Save Campaign"}
-            </button>
-          </div>
+            </Button>
+            <Button disabled={isSaving} type="submit" mt="sm">
+              {isSaving ? "Creating..." : "Create"}
+            </Button>
+          </SimpleGrid>
         </form>
       </div>
     </div>
