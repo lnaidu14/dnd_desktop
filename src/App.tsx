@@ -7,10 +7,13 @@ import { useCampaigns } from "./components/campaigns/hooks/campaigns";
 import { useSettings } from "./components/campaigns/hooks/settings";
 import { MantineProvider, Container, Button } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { Plus } from "lucide-react";
+import { Loader, Plus } from "lucide-react";
+import { InitUserModal } from "./components/campaigns/InitUserModal/InitUserModal";
+import { Notifications, notifications } from "@mantine/notifications";
+import "@mantine/notifications/styles.css";
 
 function App() {
-  const { settings } = useSettings();
+  const { settings, updateSettings, isLoading } = useSettings();
 
   const {
     campaigns,
@@ -23,49 +26,69 @@ function App() {
   } = useCampaigns();
 
   useEffect(() => {
-    loadCampaigns(settings.lastOpenedCampaign);
-  }, [settings.lastOpenedCampaign]);
+    if (isLoading) {
+      return;
+    }
 
-  if (!settings.username) {
-    return <div>Username not set</div>;
+    loadCampaigns(settings.lastOpenedCampaign);
+
+    if (settings.username) {
+      notifications.show({
+        title: `Hi ${settings.username}!`,
+        message: settings.lastOpenedCampaign
+          ? "Welcome back!"
+          : "Welcome to dnd-custom!",
+        color: "blue",
+      });
+    }
+  }, [isLoading, settings.lastOpenedCampaign, settings.username]);
+
+  if (isLoading) {
+    return <Loader color="blue" />;
   }
 
   return (
     <MantineProvider defaultColorScheme="dark">
-      <Container fluid>
-        <div className="grid grid-cols-3 items-center pt-5">
-          <div />
+      <Notifications />
 
-          <h1 className="text-center text-3xl font-bold">
-            Campaign Selection Screen
-          </h1>
+      {!settings.username ? (
+        <InitUserModal onSettingsInit={updateSettings} />
+      ) : (
+        <Container fluid>
+          <div className="grid grid-cols-3 items-center pt-5">
+            <div />
 
-          <div className="flex justify-end">
-            <Button
-              size="md"
-              color="blue"
-              leftSection={<Plus size={18} />}
-              onClick={() => setIsCreateCampaignModalOpen(true)}
-              className="transition-transform duration-200 hover:scale-[1.03]"
-            >
-              New Campaign
-            </Button>
+            <h1 className="text-center text-3xl font-bold">
+              Campaign Selection Screen
+            </h1>
+
+            <div className="flex justify-end">
+              <Button
+                size="md"
+                color="blue"
+                leftSection={<Plus size={18} />}
+                onClick={() => setIsCreateCampaignModalOpen(true)}
+                className="transition-transform duration-200 hover:scale-[1.03]"
+              >
+                New Campaign
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <CampaignSelection
-          campaigns={campaigns}
-          onSelectCampaign={handleSelectCampaign}
-          onDeleteCampaign={handleDeleteCampaign}
-        />
-
-        {isCreateCampaignModalOpen && (
-          <CreateCampaignModal
-            onCampaignCreated={handleCampaignCreated}
-            onClose={() => setIsCreateCampaignModalOpen(false)}
+          <CampaignSelection
+            campaigns={campaigns}
+            onSelectCampaign={handleSelectCampaign}
+            onDeleteCampaign={handleDeleteCampaign}
           />
-        )}
-      </Container>
+
+          {isCreateCampaignModalOpen && (
+            <CreateCampaignModal
+              onCampaignCreated={handleCampaignCreated}
+              onClose={() => setIsCreateCampaignModalOpen(false)}
+            />
+          )}
+        </Container>
+      )}
     </MantineProvider>
   );
 }
