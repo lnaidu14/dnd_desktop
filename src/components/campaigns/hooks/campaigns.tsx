@@ -7,8 +7,10 @@ import {
   readDir,
   readTextFile,
   remove,
+  writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { confirm } from "@tauri-apps/plugin-dialog";
+import { notifications } from "@mantine/notifications";
 
 import { useSettings } from "./settings";
 
@@ -19,6 +21,14 @@ export function useCampaigns() {
   const [isCreateCampaignModalOpen, setIsCreateCampaignModalOpen] =
     useState(false);
   const { updateSettings } = useSettings();
+
+  async function saveCampaign(campaign: Campaign) {
+    const campaignFile = `campaigns/${campaign.id}/${campaign.id}.json`;
+
+    await writeTextFile(campaignFile, JSON.stringify(campaign, null, 2), {
+      baseDir: BaseDirectory.AppData,
+    });
+  }
 
   async function loadCampaigns(lastOpenedId?: string | null) {
     try {
@@ -96,34 +106,60 @@ export function useCampaigns() {
       if (activeCampaign?.id === campaignId) {
         setActiveCampaign(null);
       }
+
+      notifications.show({
+        title: `Campaign deleted!`,
+        message: "Campaign deleted successfully",
+        color: "red",
+      });
     } catch (err) {
       console.error("Failed to delete campaign:", err);
     }
   }
 
-  function handleUpdateCampaign(updatedCampaign: Campaign) {
-    setActiveCampaign(updatedCampaign);
-    setCampaigns((prev) =>
-      prev.map((c) => (c.id === updatedCampaign.id ? updatedCampaign : c)),
-    );
+  async function handleUpdateCampaign(updatedCampaign: Campaign) {
+    try {
+      await saveCampaign(updatedCampaign);
+
+      setActiveCampaign(updatedCampaign);
+
+      setCampaigns((prev) =>
+        prev.map((c) => (c.id === updatedCampaign.id ? updatedCampaign : c)),
+      );
+    } catch (err) {
+      console.error("Failed to update campaign:", err);
+    }
   }
 
-  // 3. Handle when a new campaign is created
+  async function handleEditCampaign(updatedCampaign: Campaign) {
+    try {
+      await saveCampaign(updatedCampaign);
+
+      setCampaigns((prev) =>
+        prev.map((c) => (c.id === updatedCampaign.id ? updatedCampaign : c)),
+      );
+    } catch (err) {
+      console.error("Failed to edit campaign:", err);
+    }
+  }
+
   async function handleCampaignCreated(newCampaign: Campaign) {
     setCampaigns((prev) => [...prev, newCampaign]);
-    setActiveCampaign(newCampaign);
     setIsCreateCampaignModalOpen(false);
 
     await updateSettings({ lastOpenedCampaign: newCampaign.id });
+    notifications.show({
+      title: `Campaign created!`,
+      message: "Campaign created successfully",
+      color: "green",
+    });
   }
 
-  // 4. Handle switching active campaigns
   async function handleSelectCampaign(campaign: Campaign) {
     setActiveCampaign(campaign);
     await updateSettings({ lastOpenedCampaign: campaign.id });
   }
 
-  // 6. Handle back button from dashboard
   async function handleBackToCampaigns() {
     setActiveCampaign(null);
     await updateSettings({ lastOpenedCampaign: null });
@@ -134,8 +170,12 @@ export function useCampaigns() {
     loadCampaigns,
     isCreateCampaignModalOpen,
     setIsCreateCampaignModalOpen,
+    activeCampaign,
     handleCampaignCreated,
     handleSelectCampaign,
     handleDeleteCampaign,
+    handleUpdateCampaign,
+    handleEditCampaign,
+    handleBackToCampaigns,
   };
 }

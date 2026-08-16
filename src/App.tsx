@@ -17,12 +17,16 @@ function App() {
 
   const {
     campaigns,
+    activeCampaign,
     loadCampaigns,
     isCreateCampaignModalOpen,
     setIsCreateCampaignModalOpen,
     handleCampaignCreated,
     handleSelectCampaign,
     handleDeleteCampaign,
+    handleUpdateCampaign,
+    handleEditCampaign,
+    handleBackToCampaigns,
   } = useCampaigns();
 
   useEffect(() => {
@@ -35,9 +39,7 @@ function App() {
     if (settings.username) {
       notifications.show({
         title: `Hi ${settings.username}!`,
-        message: settings.lastOpenedCampaign
-          ? "Welcome back!"
-          : "Welcome to dnd-custom!",
+        message: "Welcome to dnd-custom!",
         color: "blue",
       });
     }
@@ -55,37 +57,48 @@ function App() {
         <InitUserModal onSettingsInit={updateSettings} />
       ) : (
         <Container fluid>
-          <div className="grid grid-cols-3 items-center pt-5">
-            <div />
-
-            <h1 className="text-center text-3xl font-bold">
-              Campaign Selection Screen
-            </h1>
-
-            <div className="flex justify-end">
-              <Button
-                size="md"
-                color="blue"
-                leftSection={<Plus size={18} />}
-                onClick={() => setIsCreateCampaignModalOpen(true)}
-                className="transition-transform duration-200 hover:scale-[1.03]"
-              >
-                New Campaign
-              </Button>
-            </div>
-          </div>
-
-          <CampaignSelection
-            campaigns={campaigns}
-            onSelectCampaign={handleSelectCampaign}
-            onDeleteCampaign={handleDeleteCampaign}
-          />
-
-          {isCreateCampaignModalOpen && (
-            <CreateCampaignModal
-              onCampaignCreated={handleCampaignCreated}
-              onClose={() => setIsCreateCampaignModalOpen(false)}
+          {activeCampaign ? (
+            <CampaignDashboard
+              campaign={activeCampaign}
+              onUpdateCampaign={handleUpdateCampaign}
+              onBack={handleBackToCampaigns}
             />
+          ) : (
+            <>
+              <div className="grid grid-cols-3 items-center pt-5">
+                <div />
+
+                <h1 className="text-center text-3xl font-bold">
+                  Campaign Selection Screen
+                </h1>
+
+                <div className="flex justify-end">
+                  <Button
+                    size="md"
+                    color="blue"
+                    leftSection={<Plus size={18} />}
+                    onClick={() => setIsCreateCampaignModalOpen(true)}
+                    className="transition-transform duration-200 hover:scale-[1.03]"
+                  >
+                    New Campaign
+                  </Button>
+                </div>
+              </div>
+
+              <CampaignSelection
+                campaigns={campaigns}
+                onSelectCampaign={handleSelectCampaign}
+                onUpdateCampaign={handleEditCampaign}
+                onDeleteCampaign={handleDeleteCampaign}
+              />
+
+              {isCreateCampaignModalOpen && (
+                <CreateCampaignModal
+                  onCampaignCreated={handleCampaignCreated}
+                  onClose={() => setIsCreateCampaignModalOpen(false)}
+                />
+              )}
+            </>
           )}
         </Container>
       )}
