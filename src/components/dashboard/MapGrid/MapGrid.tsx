@@ -2,7 +2,8 @@ import { Token } from "../../../types/campaigns";
 import { PlacedToken } from "../PlaceToken/PlacedToken";
 import { GridCell } from "../GridCell/GridCell";
 import "./MapGrid.css";
-import { Box, Flex, Image, Text, Loader } from "@mantine/core";
+import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
+import { TrashIcon } from "lucide-react";
 
 interface MapGridProps {
   rows: number;
@@ -10,6 +11,7 @@ interface MapGridProps {
   cellSize: number;
   mapUrl: string | null;
   tokens: Token[];
+  onDeleteToken: (tokenId: string) => void;
 }
 
 export function MapGrid({
@@ -18,6 +20,7 @@ export function MapGrid({
   cols,
   cellSize,
   tokens,
+  onDeleteToken,
 }: MapGridProps) {
   if (!mapUrl || !cellSize || !rows || !cols) {
     return (
@@ -90,7 +93,27 @@ export function MapGrid({
                 {tokens
                   .filter((token) => token.row === row && token.col === col)
                   .map((token) => (
-                    <PlacedToken key={token.id} token={token} />
+                    <Menu key={token.id} shadow="md" width={200}>
+                      <Menu.ContextMenu>
+                        <Box>
+                          <PlacedToken token={token} />
+                        </Box>
+                      </Menu.ContextMenu>
+
+                      <Menu.Dropdown>
+                        <Menu.Label>Token settings</Menu.Label>
+
+                        <Menu.Divider />
+
+                        <Menu.Item
+                          color="red"
+                          leftSection={<TrashIcon size={14} />}
+                          onClick={() => onDeleteToken(token.id)}
+                        >
+                          Delete token
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
                   ))}
               </GridCell>
             )),

@@ -20,7 +20,6 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
 import { DraggableToken } from "../Token/DraggableToken";
-import { TokenTrash } from "../TokenTrash/TokenTrash";
 import {
   ActionIcon,
   Box,
@@ -309,6 +308,42 @@ export function CampaignDashboard({
     }
   }
 
+  async function handleDeleteToken(tokenId: string) {
+    if (!activeScene) return;
+
+    const tokenToDelete = activeScene.tokens?.find(
+      (token) => token.id === tokenId,
+    );
+
+    if (!tokenToDelete) return;
+
+    const updatedTokens = activeScene.tokens.filter(
+      (token) => token.id !== tokenId,
+    );
+
+    await handleUpdateActiveScene({
+      tokens: updatedTokens,
+    });
+
+    setAvailableTokens((prev) => {
+      const libraryId = tokenToDelete.sourceId ?? tokenToDelete.id;
+
+      if (prev.some((token) => token.id === libraryId)) {
+        return prev;
+      }
+
+      return [
+        ...prev,
+        {
+          ...tokenToDelete,
+          id: libraryId,
+          row: undefined,
+          col: undefined,
+        },
+      ];
+    });
+  }
+
   async function handleDeleteScene(
     e: React.MouseEvent,
     sceneIdToDelete: string,
@@ -400,51 +435,6 @@ export function CampaignDashboard({
 
     const token = source.data;
 
-    // Dropped into trash
-    if (target.id === "trash") {
-      const isExistingToken = activeScene.tokens?.some(
-        (t) => t.id === token.id,
-      );
-
-      if (isExistingToken) {
-        // Remove from scene
-        const updatedTokens = activeScene.tokens.filter(
-          (t) => t.id !== token.id,
-        );
-
-        await handleUpdateActiveScene({
-          tokens: updatedTokens,
-        });
-
-        // Return token to sidebar library
-        setAvailableTokens((prev) => {
-          const libraryId = token.sourceId ?? token.id;
-
-          // Prevent duplicate sidebar tokens
-          if (prev.some((t) => t.id === libraryId)) {
-            return prev;
-          }
-
-          return [
-            ...prev,
-            {
-              id: libraryId,
-              name: token.name,
-              imageUrl: token.imageUrl,
-              relativePath: token.relativePath,
-              x: 0,
-              y: 0,
-              size: 0,
-              isDefault: token.isDefault ?? false,
-            },
-          ];
-        });
-      }
-
-      setCurrentTokenDragging("");
-      return;
-    }
-
     const isExistingToken = activeScene.tokens?.some((t) => t.id === token.id);
 
     // Moving an existing token
@@ -509,8 +499,6 @@ export function CampaignDashboard({
             </Button>
 
             <h2 style={{ margin: 0 }}>{campaign.name}</h2>
-
-            <TokenTrash />
           </Flex>
 
           {/* Workspace Body */}
@@ -916,6 +904,7 @@ export function CampaignDashboard({
                   cols={cols}
                   cellSize={displayCellSize}
                   tokens={placedTokens}
+                  onDeleteToken={handleDeleteToken}
                 />
               ) : (
                 <Flex h="100%" w="100%" align="center" justify="center">
