@@ -8,6 +8,7 @@ interface GridCellProps {
   size: number;
   children: ReactNode;
 }
+
 export function GridCell({ row, col, size, children }: GridCellProps) {
   const { ref } = useDroppable({
     id: `cell-${row}-${col}`,
@@ -17,7 +18,7 @@ export function GridCell({ row, col, size, children }: GridCellProps) {
   return (
     <div
       ref={ref}
-      className="grid-cell"
+      className="relative flex items-center justify-center border border-white/10"
       style={{
         width: size,
         height: size,

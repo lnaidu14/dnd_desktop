@@ -99,7 +99,6 @@ export function CreateCampaignModal({
         { baseDir: BaseDirectory.AppData },
       );
 
-      console.log("Campaign saved successfully:", newCampaign);
       onCampaignCreated(newCampaign);
     } catch (err) {
       console.error("Failed to create campaign:", err);

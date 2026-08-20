@@ -21,6 +21,25 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { DragDropProvider } from "@dnd-kit/react";
 import { DraggableToken } from "../Token/DraggableToken";
 import { TokenTrash } from "../TokenTrash/TokenTrash";
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Checkbox,
+  Container,
+  Group,
+  Flex,
+  NumberInput,
+  ScrollArea,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  Text,
+  TextInput,
+  UnstyledButton,
+  Collapse,
+} from "@mantine/core";
+import { ArrowLeft, ChevronDown, ChevronRight, Plus } from "lucide-react";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -50,7 +69,6 @@ export function CampaignDashboard({
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
   const [defaultTokensExpanded, setDefaultTokensExpanded] = useState(true);
   const [customTokensExpanded, setCustomTokensExpanded] = useState(true);
-  const [displayCellSize, setDisplayCellSize] = useState(0);
   const defaultTokens: Token[] = [
     {
       id: "default_goblin",
@@ -153,6 +171,11 @@ export function CampaignDashboard({
   const cols = Math.ceil((activeScene?.mapWidth ?? 0) / gridSize);
   const rows = Math.ceil((activeScene?.mapHeight ?? 0) / gridSize);
 
+  const displayCellSize =
+    cols > 0 && rows > 0 && viewportSize.width > 0 && viewportSize.height > 0
+      ? Math.min(viewportSize.width / cols, viewportSize.height / rows)
+      : 0;
+
   useEffect(() => {
     async function loadTokens() {
       try {
@@ -168,16 +191,15 @@ export function CampaignDashboard({
   }, []);
 
   useEffect(() => {
-    console.log("activeScene: ", activeScene);
     if (!activeScene?.mapImage) {
       setActiveMapUrl(null);
       return;
     }
 
-    getAssetUrl(activeScene.mapImage).then((mapFullPathUrl) =>
-      setActiveMapUrl(mapFullPathUrl),
-    );
-  }, [activeScene, activeMapUrl]);
+    getAssetUrl(activeScene.mapImage).then((mapFullPathUrl) => {
+      setActiveMapUrl(mapFullPathUrl);
+    });
+  }, [activeScene?.mapImage]);
 
   useEffect(() => {
     if (!activeMapUrl || !activeScene) return;
@@ -191,12 +213,6 @@ export function CampaignDashboard({
       }
     });
   }, [activeMapUrl]);
-
-  useEffect(() => {
-    setDisplayCellSize(
-      Math.min(viewportSize.width / cols, viewportSize.height / rows),
-    );
-  }, [viewportSize]);
 
   async function handleImportToken() {
     try {
@@ -346,7 +362,7 @@ export function CampaignDashboard({
     const newScene: Scene = {
       id: `scene_${Date.now()}`,
       name: newSceneName.trim(),
-      gridSize: displayCellSize,
+      gridSize: 50,
       gridColor: "#ffffffff",
       gridEnabled: false,
       mapImage: savedRelativePath,
@@ -471,323 +487,447 @@ export function CampaignDashboard({
   }
 
   return (
-    <div className="workspace-container">
+    <Container fluid p={0} h="100vh">
       <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Workspace Header */}
-        <div className="workspace-header">
-          <button onClick={onBack} className="btn-secondary">
-            ← Back to Campaigns
-          </button>
-          <h2 style={{ margin: 0 }}>{campaign.name}</h2>
-          <TokenTrash />
-        </div>
+        <Flex direction="column" h="100vh">
+          {/* Workspace Header */}
+          <Flex
+            h={56}
+            px="md"
+            align="center"
+            justify="space-between"
+            style={{
+              flexShrink: 0,
+            }}
+          >
+            <Button
+              leftSection={<ArrowLeft size={18} />}
+              size="md"
+              onClick={onBack}
+            >
+              Back to Campaigns
+            </Button>
 
-        {/* Workspace Body */}
-        <div className="workspace-body">
-          {/* Collapsible Sidebar Inspector */}
-          <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-            <div className="sidebar-header">
+            <h2 style={{ margin: 0 }}>{campaign.name}</h2>
+
+            <TokenTrash />
+          </Flex>
+
+          {/* Workspace Body */}
+          <Flex
+            flex={1}
+            mih={0}
+            w="100%"
+            style={{
+              overflow: "hidden",
+            }}
+          >
+            {/* Sidebar / Inspector */}
+            <Box
+              h="100%"
+              w={isSidebarCollapsed ? 0 : 320}
+              miw={isSidebarCollapsed ? 0 : 320}
+              style={{
+                flexShrink: 0,
+                overflow: "hidden",
+                transition: "width 150ms ease",
+              }}
+            >
               {!isSidebarCollapsed && (
-                /* Tab Navigation Bar */
-                <div className="inspector-tabs">
-                  <button
-                    className={`tab-btn ${activeTab === "scenes" ? "active" : ""}`}
-                    onClick={() => setActiveTab("scenes")}
-                  >
-                    Scenes
-                  </button>
-                  <button
-                    className={`tab-btn ${activeTab === "tokens" ? "active" : ""}`}
-                    onClick={() => setActiveTab("tokens")}
-                  >
-                    Tokens
-                  </button>
-                  <button
-                    className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
-                    onClick={() => setActiveTab("settings")}
-                  >
-                    Settings
-                  </button>
-                </div>
-              )}
-              <button
-                className="sidebar-toggle-btn"
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                title={
-                  isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"
-                }
-              >
-                {isSidebarCollapsed ? "▶" : "◀"}
-              </button>
-            </div>
+                <Tabs
+                  value={activeTab}
+                  onChange={(value) =>
+                    setActiveTab(value as "scenes" | "tokens" | "settings")
+                  }
+                  h="100%"
+                  styles={{
+                    root: {
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    },
+                    panel: {
+                      flex: 1,
+                      minHeight: 0,
+                      overflow: "hidden",
+                    },
+                  }}
+                >
+                  {/* Tab Navigation */}
+                  <Tabs.List>
+                    <Tabs.Tab value="scenes">Scenes</Tabs.Tab>
 
-            {!isSidebarCollapsed && (
-              <>
-                {/* TAB 1: SCENES */}
-                {activeTab === "scenes" && (
-                  <div className="tab-content">
-                    <ul className="scene-list">
-                      {campaign.scenes.map((scene) => (
-                        <li
-                          key={scene.id}
-                          className={`scene-item ${
-                            scene.id === campaign.activeSceneId
-                              ? "active-scene"
-                              : ""
-                          }`}
-                          onClick={async () => {
-                            const updated = {
-                              ...campaign,
-                              activeSceneId: scene.id,
-                            };
-                            await saveAndEmit(updated);
-                          }}
-                        >
-                          <span>🗺️ {scene.name}</span>
-                          <button
-                            onClick={(e) => handleDeleteScene(e, scene.id)}
-                            className="delete-scene-btn"
-                            title="Delete Scene"
-                          >
-                            🗑️
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <Tabs.Tab value="tokens">Tokens</Tabs.Tab>
 
-                    <div className="sidebar-footer">
-                      {isAddingScene ? (
-                        <form
-                          onSubmit={handleAddScene}
-                          className="add-scene-form"
-                        >
-                          <input
-                            type="text"
-                            placeholder="Scene Name..."
-                            value={newSceneName}
-                            onChange={(e) => setNewSceneName(e.target.value)}
-                            autoFocus
-                          />
+                    <Tabs.Tab value="settings">Settings</Tabs.Tab>
+                  </Tabs.List>
 
-                          <button
-                            type="button"
-                            onClick={handlePickMapFile}
-                            className="btn-secondary"
-                          >
-                            {selectedMapPath
-                              ? "📁 Change Map Image"
-                              : "📁 Choose Map Image"}
-                          </button>
+                  {/* =========================
+                    SCENES TAB
+                    ========================= */}
+                  <Tabs.Panel value="scenes" h="100%">
+                    <Flex direction="column" h="100%" p="sm">
+                      {/* Scene List */}
+                      <ScrollArea flex={1} mih={0}>
+                        <Stack gap="xs">
+                          {campaign.scenes.map((scene) => (
+                            <Group
+                              key={scene.id}
+                              justify="space-between"
+                              wrap="nowrap"
+                              px="sm"
+                              py="xs"
+                              style={{
+                                cursor: "pointer",
+                                borderRadius: 6,
+                                background:
+                                  scene.id === campaign.activeSceneId
+                                    ? "var(--mantine-color-blue-light)"
+                                    : undefined,
+                              }}
+                              onClick={async () => {
+                                const updated = {
+                                  ...campaign,
+                                  activeSceneId: scene.id,
+                                };
 
-                          {selectedMapPath && (
-                            <span className="selected-path-text">
-                              Selected: {selectedMapPath.split(/[/\\]/).pop()}
-                            </span>
-                          )}
-
-                          <div className="form-action-row">
-                            <button type="submit" className="btn-primary">
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              onClick={() => {
-                                setIsAddingScene(false);
-                                setSelectedMapPath(null);
+                                await saveAndEmit(updated);
                               }}
                             >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <button
-                          onClick={() => setIsAddingScene(true)}
-                          className="btn-primary full-width"
+                              <Text
+                                size="sm"
+                                truncate
+                                style={{
+                                  flex: 1,
+                                }}
+                              >
+                                🗺️ {scene.name}
+                              </Text>
+
+                              <ActionIcon
+                                color="red"
+                                variant="subtle"
+                                title="Delete Scene"
+                                onClick={(e) => handleDeleteScene(e, scene.id)}
+                              >
+                                🗑️
+                              </ActionIcon>
+                            </Group>
+                          ))}
+                        </Stack>
+                      </ScrollArea>
+
+                      {/* Add Scene Footer */}
+                      <Box pt="sm">
+                        {isAddingScene ? (
+                          <form onSubmit={handleAddScene}>
+                            <Stack gap="sm">
+                              <TextInput
+                                placeholder="Scene Name..."
+                                value={newSceneName}
+                                onChange={(e) =>
+                                  setNewSceneName(e.target.value)
+                                }
+                                autoFocus
+                              />
+
+                              <Button
+                                type="button"
+                                variant="default"
+                                onClick={handlePickMapFile}
+                                fullWidth
+                              >
+                                {selectedMapPath
+                                  ? "📁 Change Map Image"
+                                  : "📁 Choose Map Image"}
+                              </Button>
+
+                              {selectedMapPath && (
+                                <Text size="xs" c="dimmed" truncate>
+                                  Selected:{" "}
+                                  {selectedMapPath.split(/[\\/]/).pop()}
+                                </Text>
+                              )}
+
+                              <Group grow>
+                                <Button type="submit" size="md">
+                                  Save
+                                </Button>
+
+                                <Button
+                                  type="button"
+                                  size="md"
+                                  color="red"
+                                  onClick={() => {
+                                    setIsAddingScene(false);
+                                    setSelectedMapPath(null);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </Group>
+                            </Stack>
+                          </form>
+                        ) : (
+                          <Button
+                            fullWidth
+                            size="md"
+                            leftSection={<Plus size={18} />}
+                            onClick={() => setIsAddingScene(true)}
+                          >
+                            Add Scene
+                          </Button>
+                        )}
+                      </Box>
+                    </Flex>
+                  </Tabs.Panel>
+
+                  {/* =========================
+                    TOKENS TAB
+                    ========================= */}
+                  <Tabs.Panel value="tokens" h="100%">
+                    <Flex direction="column" h="100%" p="sm">
+                      {/* Token Header */}
+                      <Group justify="space-between" mb="xs">
+                        <Text fw={600}>Token Library</Text>
+
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<Plus size={14} />}
+                          onClick={handleImportToken}
                         >
-                          + Add Scene
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                          Import Token
+                        </Button>
+                      </Group>
 
-                {/* TAB 2: TOKENS */}
-                {activeTab === "tokens" && (
-                  <div className="tab-content">
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      <h4 className="tab-section-title" style={{ margin: 0 }}>
-                        Token Library
-                      </h4>
+                      <Text size="xs" c="dimmed" mb="sm">
+                        Drag any token onto the active map view.
+                      </Text>
 
-                      <button
-                        className="btn-secondary"
-                        style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                        onClick={handleImportToken}
-                      >
-                        + Import Token
-                      </button>
-                    </div>
+                      {/* Token Content */}
+                      <ScrollArea flex={1} mih={0}>
+                        <Stack gap="md">
+                          {/* =========================
+            DEFAULT TOKENS
+            ========================= */}
+                          <Box>
+                            <UnstyledButton
+                              w="100%"
+                              onClick={() =>
+                                setDefaultTokensExpanded((prev) => !prev)
+                              }
+                              aria-expanded={defaultTokensExpanded}
+                            >
+                              <Group justify="space-between">
+                                <Group gap="xs">
+                                  <Box
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      transition: "transform 150ms ease",
+                                      transform: defaultTokensExpanded
+                                        ? "rotate(0deg)"
+                                        : "rotate(0deg)",
+                                    }}
+                                  >
+                                    {defaultTokensExpanded ? (
+                                      <ChevronDown size={16} />
+                                    ) : (
+                                      <ChevronRight size={16} />
+                                    )}
+                                  </Box>
 
-                    <p className="tab-section-subtitle">
-                      Drag any token onto the active map view.
-                    </p>
+                                  <Text size="sm" fw={600}>
+                                    Default Tokens
+                                  </Text>
+                                </Group>
 
-                    {/* Default Tokens */}
-                    <div className="token-section">
-                      <button
-                        className="token-section-header"
-                        onClick={() =>
-                          setDefaultTokensExpanded((prev) => !prev)
-                        }
-                      >
-                        <span>
-                          {defaultTokensExpanded ? "▼" : "▶"} Default Tokens
-                        </span>
+                                <Text size="sm" c="dimmed">
+                                  {
+                                    availableTokens.filter(
+                                      (token) => token.isDefault,
+                                    ).length
+                                  }
+                                </Text>
+                              </Group>
+                            </UnstyledButton>
 
-                        <span>
-                          {
-                            availableTokens.filter((token) => token.isDefault)
-                              .length
-                          }
-                        </span>
-                      </button>
+                            <Collapse
+                              expanded={defaultTokensExpanded}
+                              transitionDuration={200}
+                              transitionTimingFunction="ease"
+                            >
+                              <Stack gap="xs" mt="xs">
+                                <Text size="xs" c="dimmed">
+                                  Built-in game tokens.
+                                </Text>
 
-                      {defaultTokensExpanded && (
-                        <>
-                          <p className="tab-section-subtitle">
-                            Built-in game tokens.
-                          </p>
+                                <SimpleGrid cols={3} spacing="xs">
+                                  {availableTokens
+                                    .filter((token) => token.isDefault)
+                                    .map((token) => (
+                                      <DraggableToken
+                                        key={token.id}
+                                        token={token}
+                                      />
+                                    ))}
+                                </SimpleGrid>
+                              </Stack>
+                            </Collapse>
+                          </Box>
 
-                          <div className="token-grid">
-                            {availableTokens
-                              .filter((token) => token.isDefault)
-                              .map((token) => (
-                                <DraggableToken key={token.id} token={token} />
-                              ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                          {/* =========================
+            CUSTOM TOKENS
+            ========================= */}
+                          <Box>
+                            <UnstyledButton
+                              w="100%"
+                              onClick={() =>
+                                setCustomTokensExpanded((prev) => !prev)
+                              }
+                              aria-expanded={customTokensExpanded}
+                            >
+                              <Group justify="space-between">
+                                <Group gap="xs">
+                                  <Box
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    {customTokensExpanded ? (
+                                      <ChevronDown size={16} />
+                                    ) : (
+                                      <ChevronRight size={16} />
+                                    )}
+                                  </Box>
 
-                    {/* Custom Tokens */}
-                    <div className="token-section">
-                      <button
-                        className="token-section-header"
-                        onClick={() => setCustomTokensExpanded((prev) => !prev)}
-                      >
-                        <span>
-                          {customTokensExpanded ? "▼" : "▶"} Custom Tokens
-                        </span>
+                                  <Text size="sm" fw={600}>
+                                    Custom Tokens
+                                  </Text>
+                                </Group>
 
-                        <span>
-                          {
-                            availableTokens.filter((token) => !token.isDefault)
-                              .length
-                          }
-                        </span>
-                      </button>
+                                <Text size="sm" c="dimmed">
+                                  {
+                                    availableTokens.filter(
+                                      (token) => !token.isDefault,
+                                    ).length
+                                  }
+                                </Text>
+                              </Group>
+                            </UnstyledButton>
 
-                      {customTokensExpanded && (
-                        <>
-                          <p className="tab-section-subtitle">
-                            Imported tokens.
-                          </p>
+                            <Collapse
+                              expanded={customTokensExpanded}
+                              transitionDuration={200}
+                              transitionTimingFunction="ease"
+                            >
+                              <Stack gap="xs" mt="xs">
+                                <Text size="xs" c="dimmed">
+                                  Imported tokens.
+                                </Text>
 
-                          <div className="token-grid">
-                            {availableTokens
-                              .filter((token) => !token.isDefault)
-                              .map((token) => (
-                                <DraggableToken key={token.id} token={token} />
-                              ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
+                                <SimpleGrid cols={3} spacing="xs">
+                                  {availableTokens
+                                    .filter((token) => !token.isDefault)
+                                    .map((token) => (
+                                      <DraggableToken
+                                        key={token.id}
+                                        token={token}
+                                      />
+                                    ))}
+                                </SimpleGrid>
+                              </Stack>
+                            </Collapse>
+                          </Box>
+                        </Stack>
+                      </ScrollArea>
+                    </Flex>
+                  </Tabs.Panel>
 
-                {/* TAB 3: SCENE SETTINGS */}
-                {activeTab === "settings" && (
-                  <div className="tab-content">
-                    {activeScene ? (
-                      <div className="settings-form">
-                        <label>
-                          Scene Name
-                          <input
-                            type="text"
-                            value={activeScene.name}
-                            onChange={(e) =>
-                              handleUpdateActiveScene({ name: e.target.value })
-                            }
-                          />
-                        </label>
+                  {/* =========================
+                    SETTINGS TAB
+                    ========================= */}
+                  <Tabs.Panel value="settings" h="100%">
+                    <ScrollArea h="100%">
+                      <Stack gap="md" p="sm">
+                        {activeScene ? (
+                          <>
+                            <TextInput
+                              label="Scene Name"
+                              value={activeScene.name}
+                              onChange={(event) =>
+                                handleUpdateActiveScene({
+                                  name: event.currentTarget.value,
+                                })
+                              }
+                            />
 
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={activeScene.gridEnabled ?? false}
-                            onChange={(e) =>
-                              handleUpdateActiveScene({
-                                gridEnabled: e.target.checked,
-                              })
-                            }
-                          />
-                          Show Grid Overlay
-                        </label>
+                            <Checkbox
+                              label="Show Grid Overlay"
+                              checked={activeScene.gridEnabled ?? false}
+                              onChange={(e) =>
+                                handleUpdateActiveScene({
+                                  gridEnabled: e.target.checked,
+                                })
+                              }
+                            />
 
-                        <label>
-                          Grid Size (px)
-                          <input
-                            type="number"
-                            value={activeScene.gridSize || 50}
-                            onChange={(e) =>
-                              handleUpdateActiveScene({
-                                gridSize: Number(e.target.value),
-                              })
-                            }
-                          />
-                        </label>
-                      </div>
-                    ) : (
-                      <p style={{ color: "#71717a", fontSize: "0.85rem" }}>
-                        No active scene to configure.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </aside>
+                            <NumberInput
+                              label="Grid Size (px)"
+                              value={activeScene.gridSize || 50}
+                              onChange={(value) =>
+                                handleUpdateActiveScene({
+                                  gridSize: Number(value),
+                                })
+                              }
+                            />
+                          </>
+                        ) : (
+                          <Text c="dimmed" size="sm">
+                            No active scene to configure.
+                          </Text>
+                        )}
+                      </Stack>
+                    </ScrollArea>
+                  </Tabs.Panel>
+                </Tabs>
+              )}
+            </Box>
 
-          {/* Viewport Map Area */}
-          <main ref={viewportRef} className="map-viewport">
-            {activeScene ? (
-              <MapGrid
-                mapUrl={activeMapUrl}
-                rows={rows}
-                cols={cols}
-                cellSize={displayCellSize}
-                tokens={placedTokens}
-              />
-            ) : (
-              <div className="empty-viewport-message">
-                <p style={{ color: "#71717a" }}>
-                  No active scene selected. Add a scene to get started!
-                </p>
-              </div>
-            )}
-          </main>
-        </div>
+            {/* =========================
+              MAP VIEWPORT
+              ========================= */}
+            <Box
+              ref={viewportRef}
+              flex={1}
+              h="100%"
+              miw={0}
+              pos="relative"
+              style={{
+                overflow: "hidden",
+              }}
+            >
+              {activeScene ? (
+                <MapGrid
+                  mapUrl={activeMapUrl}
+                  rows={rows}
+                  cols={cols}
+                  cellSize={displayCellSize}
+                  tokens={placedTokens}
+                />
+              ) : (
+                <Flex h="100%" w="100%" align="center" justify="center">
+                  <Text c="dimmed">
+                    No active scene selected. Add a scene to get started!
+                  </Text>
+                </Flex>
+              )}
+            </Box>
+          </Flex>
+        </Flex>
       </DragDropProvider>
-    </div>
+    </Container>
   );
 }

@@ -63,7 +63,6 @@ export async function getAssetUrl(relativePath: string): Promise<string> {
   // Clean leading slashes/backslashes to avoid path duplication
   const cleanRelativePath = relativePath.replace(/^[/\\]+/, "");
   const fullPath = await join(appData, cleanRelativePath);
-  console.log("fullPath: ", convertFileSrc(fullPath))
   return convertFileSrc(fullPath);
 }
 

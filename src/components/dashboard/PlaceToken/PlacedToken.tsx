@@ -14,27 +14,17 @@ export function PlacedToken({ token }: PlacedTokenProps) {
   return (
     <div
       ref={ref}
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "grab",
-      }}
+      className="flex h-full w-full cursor-grab items-center justify-center active:cursor-grabbing"
     >
       {token.imageUrl ? (
         <img
           src={token.imageUrl}
           alt={token.name}
-          style={{
-            width: "90%",
-            height: "90%",
-            objectFit: "contain",
-          }}
+          draggable={false}
+          className="h-[90%] w-[90%] object-contain"
         />
       ) : (
-        token.name[0]
+        <span className="text-lg font-bold">{token.name[0]}</span>
       )}
     </div>
   );

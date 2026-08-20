@@ -37,7 +37,6 @@ export function InitUserModal({ onSettingsInit }: InitUserModalProps) {
         lastOpenedCampaign: "",
       };
 
-      console.log("Settings saved successfully:", newSettings);
       onSettingsInit(newSettings);
     } catch (err) {
       console.error("Failed to save settings:", err);
