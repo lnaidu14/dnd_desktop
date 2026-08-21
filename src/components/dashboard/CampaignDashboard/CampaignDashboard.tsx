@@ -39,6 +39,7 @@ import {
   Collapse,
 } from "@mantine/core";
 import { ArrowLeft, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { notifications } from "@mantine/notifications";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -73,27 +74,30 @@ export function CampaignDashboard({
       id: "default_goblin",
       name: "Goblin",
       imageUrl: "/tokens/goblin.jfif",
-      x: 0,
-      y: 0,
-      size: 0,
+      row: 0,
+      col: 0,
+      type: "monster",
+      allowDuplicates: true,
       isDefault: true,
     },
     {
       id: "default_chest",
       name: "Chest",
       imageUrl: "/tokens/chest.jpg",
-      x: 0,
-      y: 0,
-      size: 0,
+      row: 0,
+      col: 0,
+      type: "object",
+      allowDuplicates: true,
       isDefault: true,
     },
     {
       id: "default_dragon",
       name: "Dragon",
       imageUrl: "/tokens/dragon.jpg",
-      x: 0,
-      y: 0,
-      size: 0,
+      row: 0,
+      col: 0,
+      type: "monster",
+      allowDuplicates: false,
       isDefault: true,
     },
   ];
@@ -141,9 +145,10 @@ export function CampaignDashboard({
             name: file.name.replace(/\.[^/.]+$/, ""),
             relativePath,
             imageUrl: convertFileSrc(fullPath),
-            x: 0,
-            y: 0,
-            size: 0,
+            row: 0,
+            col: 0,
+            type: "npc",
+            allowDuplicates: true,
             isDefault: false,
           };
         }),
@@ -178,16 +183,30 @@ export function CampaignDashboard({
   useEffect(() => {
     async function loadTokens() {
       try {
-        const tokens = await loadTokenAssets();
+        const importedTokens = await loadTokenAssets();
 
-        setAvailableTokens([...defaultTokens, ...tokens]);
+        const libraryTokens = [...defaultTokens, ...importedTokens];
+
+        const placedSourceIds = new Set(
+          activeScene?.tokens?.map((token) => token.sourceId).filter(Boolean),
+        );
+
+        const available = libraryTokens.filter((token) => {
+          if (token.allowDuplicates) {
+            return true;
+          }
+
+          return !placedSourceIds.has(token.id);
+        });
+
+        setAvailableTokens(available);
       } catch (err) {
         console.error("Failed loading tokens:", err);
       }
     }
 
     loadTokens();
-  }, []);
+  }, [activeScene?.id, activeScene?.tokens]);
 
   useEffect(() => {
     if (!activeScene?.mapImage) {
@@ -226,15 +245,15 @@ export function CampaignDashboard({
         const relativePath = await saveTokenAsset(campaign.id, selected);
 
         const appData = await appDataDir();
-
-        const cleanPath = relativePath.replace(/^[/\\]+/, "");
-
+        const cleanPath = relativePath.replace(/^[\/\\]+/, "");
         const fullPath = await join(appData, cleanPath);
-
         const displayUrl = convertFileSrc(fullPath);
 
         const fileName =
-          selected.split(/[/\\]/).pop()?.split(".")[0] || "New Token";
+          selected
+            .split(/[\/\\]/)
+            .pop()
+            ?.split(".")[0] || "New Token";
 
         setAvailableTokens((prev) => [
           ...prev,
@@ -242,10 +261,11 @@ export function CampaignDashboard({
             id: `token_${Date.now()}`,
             name: fileName,
             relativePath,
-            imageUrl: displayUrl, // Safe asset:// schema URL,
-            x: 0,
-            y: 0,
-            size: 0,
+            imageUrl: displayUrl,
+            row: 0,
+            col: 0,
+            type: "npc",
+            allowDuplicates: true,
             isDefault: false,
           },
         ]);
@@ -325,23 +345,26 @@ export function CampaignDashboard({
       tokens: updatedTokens,
     });
 
-    setAvailableTokens((prev) => {
-      const libraryId = tokenToDelete.sourceId ?? tokenToDelete.id;
+    // Only return non-duplicatable tokens to the sidebar.
+    if (!tokenToDelete.allowDuplicates) {
+      setAvailableTokens((prev) => {
+        const libraryId = tokenToDelete.sourceId ?? tokenToDelete.id;
 
-      if (prev.some((token) => token.id === libraryId)) {
-        return prev;
-      }
+        if (prev.some((token) => token.id === libraryId)) {
+          return prev;
+        }
 
-      return [
-        ...prev,
-        {
-          ...tokenToDelete,
-          id: libraryId,
-          row: undefined,
-          col: undefined,
-        },
-      ];
-    });
+        return [
+          ...prev,
+          {
+            ...tokenToDelete,
+            id: libraryId,
+            row: undefined,
+            col: undefined,
+          },
+        ];
+      });
+    }
   }
 
   async function handleDeleteScene(
@@ -437,8 +460,24 @@ export function CampaignDashboard({
 
     const isExistingToken = activeScene.tokens?.some((t) => t.id === token.id);
 
-    // Moving an existing token
     if (isExistingToken) {
+      const cellOccupied = activeScene.tokens?.some(
+        (t) =>
+          t.id !== token.id &&
+          t.row === target.data.row &&
+          t.col === target.data.col,
+      );
+
+      if (cellOccupied) {
+        notifications.show({
+          title: "Invalid placement!",
+          message: "Cannot move token to an already occupied cell",
+          color: "red",
+        });
+        setCurrentTokenDragging("");
+        return;
+      }
+
       const updatedTokens = activeScene.tokens.map((t) =>
         t.id === token.id
           ? {
@@ -457,6 +496,20 @@ export function CampaignDashboard({
       return;
     }
 
+    const cellOccupied = activeScene.tokens?.some(
+      (t) => t.row === target.data.row && t.col === target.data.col,
+    );
+
+    if (cellOccupied) {
+      notifications.show({
+        title: "Invalid placement!",
+        message: "Cannot place a token on an already occupied cell",
+        color: "red",
+      });
+      setCurrentTokenDragging("");
+      return;
+    }
+
     // Adding a new token from library
     const placedToken = {
       ...token,
@@ -470,8 +523,9 @@ export function CampaignDashboard({
       tokens: [...(activeScene.tokens ?? []), placedToken],
     });
 
-    // Remove from sidebar
-    setAvailableTokens((prev) => prev.filter((t) => t.id !== token.id));
+    if (!token.allowDuplicates) {
+      setAvailableTokens((prev) => prev.filter((t) => t.id !== token.id));
+    }
 
     setCurrentTokenDragging("");
   }

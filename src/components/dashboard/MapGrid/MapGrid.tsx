@@ -3,7 +3,7 @@ import { PlacedToken } from "../PlaceToken/PlacedToken";
 import { GridCell } from "../GridCell/GridCell";
 import "./MapGrid.css";
 import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
-import { TrashIcon } from "lucide-react";
+import { Copy, Search, TrashIcon } from "lucide-react";
 
 interface MapGridProps {
   rows: number;
@@ -95,19 +95,26 @@ export function MapGrid({
                   .map((token) => (
                     <Menu key={token.id} shadow="md" width={200}>
                       <Menu.ContextMenu>
-                        <Box>
+                        <Box
+                          style={{
+                            width: "90%",
+                            height: "90%",
+                          }}
+                        >
                           <PlacedToken token={token} />
                         </Box>
                       </Menu.ContextMenu>
 
                       <Menu.Dropdown>
-                        <Menu.Label>Token settings</Menu.Label>
+                        <Menu.Label>{token.name}</Menu.Label>
+                        <Menu.Item leftSection={<Search />}>Examine</Menu.Item>
 
                         <Menu.Divider />
 
+                        <Menu.Item leftSection={<Copy />}>Duplicate</Menu.Item>
                         <Menu.Item
                           color="red"
-                          leftSection={<TrashIcon size={14} />}
+                          leftSection={<TrashIcon />}
                           onClick={() => onDeleteToken(token.id)}
                         >
                           Delete token
