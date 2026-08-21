@@ -7,7 +7,7 @@ interface DraggableTokenProps {
 }
 
 export function DraggableToken({ token }: DraggableTokenProps) {
-  const { ref } = useDraggable({
+  const { ref, isDragging } = useDraggable({
     id: token.id,
     data: token,
   });
@@ -16,6 +16,9 @@ export function DraggableToken({ token }: DraggableTokenProps) {
     <div
       ref={ref}
       className="flex cursor-grab flex-col items-center gap-1 rounded-md p-2 transition-colors hover:bg-zinc-800 active:cursor-grabbing"
+      style={{
+        opacity: isDragging ? 0 : 1,
+      }}
     >
       <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full bg-zinc-800">
         {token.imageUrl ? (

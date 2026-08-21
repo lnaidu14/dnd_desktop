@@ -97,8 +97,8 @@ export function MapGrid({
                       <Menu.ContextMenu>
                         <Box
                           style={{
-                            width: "90%",
-                            height: "90%",
+                            width: "100%",
+                            height: "100%",
                           }}
                         >
                           <PlacedToken token={token} />

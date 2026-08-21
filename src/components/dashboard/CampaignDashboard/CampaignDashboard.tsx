@@ -18,7 +18,7 @@ import "./CampaignDashboard.css";
 import { MapGrid } from "../MapGrid/MapGrid";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { DragDropProvider } from "@dnd-kit/react";
+import { DragDropProvider, DragOverlay } from "@dnd-kit/react";
 import { DraggableToken } from "../Token/DraggableToken";
 import {
   ActionIcon,
@@ -40,6 +40,7 @@ import {
 } from "@mantine/core";
 import { ArrowLeft, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { notifications } from "@mantine/notifications";
+import { DragTokenPreview } from "../../campaigns/DragTokenPreview/DragTokenPreview";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
@@ -105,7 +106,7 @@ export function CampaignDashboard({
   const [availableTokens, setAvailableTokens] =
     useState<Token[]>(defaultTokens);
 
-  const [currentTokenDragging, setCurrentTokenDragging] = useState("");
+  const [draggingToken, setDraggingToken] = useState<Token | null>(null);
   const activeScene = campaign.scenes.find(
     (s) => s.id === campaign.activeSceneId,
   );
@@ -439,11 +440,18 @@ export function CampaignDashboard({
     setIsAddingScene(false);
   }
 
-  async function handleDragStart(event: any) {
-    if (event.cancelled) return;
+  function handleDragStart(event: any) {
+    console.log("DRAG START", event);
+    console.log("SOURCE", event.operation?.source);
+    console.log("SOURCE DATA", event.operation?.source?.data);
 
-    const { id } = event.operation.source;
-    setCurrentTokenDragging(id);
+    if (event.canceled) return;
+
+    const token = event.operation.source.data as Token;
+
+    console.log("TOKEN", token);
+
+    setDraggingToken(token);
   }
 
   async function handleDragEnd(event: any) {
@@ -452,13 +460,15 @@ export function CampaignDashboard({
     const { source, target } = event.operation;
 
     if (!target || !activeScene) {
-      setCurrentTokenDragging("");
+      setDraggingToken(null);
       return;
     }
 
-    const token = source.data;
+    const token = source.data as Token;
 
-    const isExistingToken = activeScene.tokens?.some((t) => t.id === token.id);
+    const isExistingToken = activeScene.tokens?.some(
+      (t) => t.id === source.data.id,
+    );
 
     if (isExistingToken) {
       const cellOccupied = activeScene.tokens?.some(
@@ -474,7 +484,8 @@ export function CampaignDashboard({
           message: "Cannot move token to an already occupied cell",
           color: "red",
         });
-        setCurrentTokenDragging("");
+        setDraggingToken(null);
+
         return;
       }
 
@@ -488,11 +499,12 @@ export function CampaignDashboard({
           : t,
       );
 
+      setDraggingToken(null);
+
       await handleUpdateActiveScene({
         tokens: updatedTokens,
       });
 
-      setCurrentTokenDragging("");
       return;
     }
 
@@ -506,11 +518,11 @@ export function CampaignDashboard({
         message: "Cannot place a token on an already occupied cell",
         color: "red",
       });
-      setCurrentTokenDragging("");
+      setDraggingToken(null);
+
       return;
     }
 
-    // Adding a new token from library
     const placedToken = {
       ...token,
       id: crypto.randomUUID(),
@@ -519,6 +531,8 @@ export function CampaignDashboard({
       col: target.data.col,
     };
 
+    setDraggingToken(null);
+
     await handleUpdateActiveScene({
       tokens: [...(activeScene.tokens ?? []), placedToken],
     });
@@ -526,12 +540,11 @@ export function CampaignDashboard({
     if (!token.allowDuplicates) {
       setAvailableTokens((prev) => prev.filter((t) => t.id !== token.id));
     }
-
-    setCurrentTokenDragging("");
   }
 
   return (
     <Container fluid p={0} h="100vh">
+      <h1>Is token being dragged: {draggingToken ? "Yes" : "No"}</h1>
       <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <Flex direction="column" h="100vh">
           {/* Workspace Header */}
@@ -970,6 +983,9 @@ export function CampaignDashboard({
             </Box>
           </Flex>
         </Flex>
+        <DragOverlay>
+          {draggingToken ? <DragTokenPreview token={draggingToken} /> : null}
+        </DragOverlay>
       </DragDropProvider>
     </Container>
   );
