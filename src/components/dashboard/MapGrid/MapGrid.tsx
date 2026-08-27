@@ -4,7 +4,7 @@ import { GridCell } from "../GridCell/GridCell";
 import "./MapGrid.css";
 import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
 import { Copy, Search, TrashIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { notifications } from "@mantine/notifications";
 
 interface MapGridProps {
@@ -41,10 +41,17 @@ export function MapGrid({
 
   const [movementPath, setMovementPath] = useState<GridPosition[]>([]);
   const [isMoving, setIsMoving] = useState(false);
+  const [pendingMovement, setPendingMovement] = useState<{
+    tokenId: string;
+    row: number;
+    col: number;
+  } | null>(null);
 
-  const [visualTokenPositions, setVisualTokenPositions] = useState<
-    Record<string, GridPosition>
+  const [visualTokenOffsets, setVisualTokenOffsets] = useState<
+    Record<string, { x: number; y: number }>
   >({});
+
+  const animationResolvers = useRef<Record<string, () => void>>({});
 
   function getSelectedToken() {
     if (!selectedTokenId) return null;
@@ -52,14 +59,22 @@ export function MapGrid({
     return tokens.find((token) => token.id === selectedTokenId) ?? null;
   }
 
-  async function animateTokenMovement(tokenId: string, path: GridPosition[]) {
+  async function animateTokenMovement(token: Token, path: GridPosition[]) {
     for (const position of path) {
-      setVisualTokenPositions((prev) => ({
-        ...prev,
-        [tokenId]: position,
-      }));
+      const offsetX = (position.col - token.col!) * cellSize;
+      const offsetY = (position.row - token.row!) * cellSize;
 
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise<void>((resolve) => {
+        animationResolvers.current[token.id] = resolve;
+
+        setVisualTokenOffsets((prev) => ({
+          ...prev,
+          [token.id]: {
+            x: offsetX,
+            y: offsetY,
+          },
+        }));
+      });
     }
   }
 
@@ -161,17 +176,16 @@ export function MapGrid({
     setIsMoving(true);
     setMovementPath([]);
 
-    await animateTokenMovement(selectedToken.id, path);
+    setPendingMovement({
+      tokenId: selectedToken.id,
+      row,
+      col,
+    });
+
+    await animateTokenMovement(selectedToken, path);
 
     onMoveToken(selectedToken.id, row, col);
 
-    setVisualTokenPositions((prev) => {
-      const next = { ...prev };
-      delete next[selectedToken.id];
-      return next;
-    });
-
-    setIsMoving(false);
     onSelectToken(null);
   }
 
@@ -185,6 +199,28 @@ export function MapGrid({
     onSelectToken(tokenId);
     setMovementPath([]);
   }
+
+  useEffect(() => {
+    if (!pendingMovement) return;
+
+    const token = tokens.find((token) => token.id === pendingMovement.tokenId);
+
+    if (!token) return;
+
+    if (
+      token.row === pendingMovement.row &&
+      token.col === pendingMovement.col
+    ) {
+      setVisualTokenOffsets((prev) => {
+        const next = { ...prev };
+        delete next[pendingMovement.tokenId];
+        return next;
+      });
+
+      setPendingMovement(null);
+      setIsMoving(false);
+    }
+  }, [tokens, pendingMovement]);
 
   if (!mapUrl || !cellSize || !rows || !cols) {
     return (
@@ -275,14 +311,8 @@ export function MapGrid({
                   onMouseEnter={() => handleCellMouseEnter(row, col)}
                 >
                   {tokens
-                    .filter((token) => {
-                      const visualPosition = visualTokenPositions[token.id];
+                    .filter((token) => token.row === row && token.col === col)
 
-                      const tokenRow = visualPosition?.row ?? token.row;
-                      const tokenCol = visualPosition?.col ?? token.col;
-
-                      return tokenRow === row && tokenCol === col;
-                    })
                     .map((token) => (
                       <Menu key={token.id} shadow="md" width={200}>
                         <Menu.ContextMenu>
@@ -296,6 +326,16 @@ export function MapGrid({
                               token={token}
                               selected={selectedTokenId === token.id}
                               onSelect={() => handleTokenClick(token.id)}
+                              visualOffset={visualTokenOffsets[token.id]}
+                              onMovementAnimationComplete={() => {
+                                const resolve =
+                                  animationResolvers.current[token.id];
+
+                                if (resolve) {
+                                  delete animationResolvers.current[token.id];
+                                  resolve();
+                                }
+                              }}
                             />
                           </Box>
                         </Menu.ContextMenu>
