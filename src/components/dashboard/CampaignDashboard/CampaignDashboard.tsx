@@ -44,7 +44,6 @@ import {
   ChevronLeft,
   ChevronRight,
   FileIcon,
-  PanelLeft,
   Plus,
   Trash2,
 } from "lucide-react";
