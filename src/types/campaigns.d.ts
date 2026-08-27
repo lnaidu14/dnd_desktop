@@ -1,18 +1,24 @@
+type TokenType =
+  | "player"
+  | "npc"
+  | "monster"
+  | "object";
+
 interface Token {
   id: string;
   sourceId?: string;
 
   name: string;
+  type: TokenType;
+
   imageUrl?: string;
   relativePath?: string;
 
-  x?: number;
-  y?: number;
-  size?: number;
-
   row?: number;
   col?: number;
+
   isDefault?: boolean;
+  allowDuplicates: boolean;
 }
 
 interface Scene {

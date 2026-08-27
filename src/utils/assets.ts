@@ -17,13 +17,18 @@ export async function getImageSize(url: string) {
   });
 }
 
-export async function saveMapAsset(campaignId: string, sourceFilePath: string): Promise<string> {
-  const mapsDirExists = await exists(`campaigns/${campaignId}/assets/maps`, {
+export async function saveMapAsset(
+  campaignId: string,
+  sourceFilePath: string,
+): Promise<string> {
+  const mapsDir = `campaigns/${campaignId}/assets/maps`;
+
+  const mapsDirExists = await exists(mapsDir, {
     baseDir: BaseDirectory.AppData,
   });
 
   if (!mapsDirExists) {
-    await mkdir(`campaigns/${campaignId}/assets/maps`, {
+    await mkdir(mapsDir, {
       baseDir: BaseDirectory.AppData,
       recursive: true,
     });
@@ -31,15 +36,15 @@ export async function saveMapAsset(campaignId: string, sourceFilePath: string): 
 
   const fileName =
     sourceFilePath.split(/[/\\]/).pop() || `map_${Date.now()}.png`;
-  const relativeDestination = `campaigns/${campaignId}/assets/maps/${fileName}`;
+
+  const relativeDestination = `${mapsDir}/${fileName}`;
 
   const alreadyExists = await exists(relativeDestination, {
     baseDir: BaseDirectory.AppData,
   });
 
   if (alreadyExists) {
-    console.error(`Map "${fileName}" has already been imported.`);
-    return relativeDestination
+    return relativeDestination;
   }
 
   await copyFile(sourceFilePath, relativeDestination, {
@@ -48,6 +53,7 @@ export async function saveMapAsset(campaignId: string, sourceFilePath: string): 
 
   return relativeDestination;
 }
+
 
 export async function deleteMapAsset(mapPath: string): Promise<void> {
   await remove(mapPath, {
@@ -63,7 +69,6 @@ export async function getAssetUrl(relativePath: string): Promise<string> {
   // Clean leading slashes/backslashes to avoid path duplication
   const cleanRelativePath = relativePath.replace(/^[/\\]+/, "");
   const fullPath = await join(appData, cleanRelativePath);
-  console.log("fullPath: ", convertFileSrc(fullPath))
   return convertFileSrc(fullPath);
 }
 
