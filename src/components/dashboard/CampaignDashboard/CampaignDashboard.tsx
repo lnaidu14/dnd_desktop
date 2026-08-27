@@ -41,9 +41,12 @@ import {
 import {
   ArrowLeft,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   FileIcon,
+  PanelLeft,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import { DragTokenPreview } from "../../campaigns/DragTokenPreview/DragTokenPreview";
@@ -619,382 +622,414 @@ export function CampaignDashboard({
               h="100%"
               w={isSidebarCollapsed ? 0 : 320}
               miw={isSidebarCollapsed ? 0 : 320}
+              pos="relative"
               style={{
                 flexShrink: 0,
-                overflow: "hidden",
                 transition: "width 150ms ease",
               }}
             >
-              {!isSidebarCollapsed && (
-                <Tabs
-                  value={activeTab}
-                  onChange={(value) =>
-                    setActiveTab(value as "scenes" | "tokens" | "settings")
-                  }
-                  h="100%"
-                  styles={{
-                    root: {
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                    },
-                    panel: {
-                      flex: 1,
-                      minHeight: 0,
-                      overflow: "hidden",
-                    },
-                  }}
-                >
-                  {/* Tab Navigation */}
-                  <Tabs.List>
-                    <Tabs.Tab value="scenes">Scenes</Tabs.Tab>
+              <Box
+                h="100%"
+                w={320}
+                style={{
+                  overflow: "hidden",
+                }}
+              >
+                {!isSidebarCollapsed && (
+                  <Tabs
+                    value={activeTab}
+                    onChange={(value) =>
+                      setActiveTab(value as "scenes" | "tokens" | "settings")
+                    }
+                    h="100%"
+                    styles={{
+                      root: {
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                      },
+                      panel: {
+                        flex: 1,
+                        minHeight: 0,
+                        overflow: "hidden",
+                      },
+                    }}
+                  >
+                    {/* Tab Navigation */}
+                    <Tabs.List>
+                      <Tabs.Tab value="scenes">Scenes</Tabs.Tab>
 
-                    <Tabs.Tab value="tokens">Tokens</Tabs.Tab>
+                      <Tabs.Tab value="tokens">Tokens</Tabs.Tab>
 
-                    <Tabs.Tab value="settings">Settings</Tabs.Tab>
-                  </Tabs.List>
+                      <Tabs.Tab value="settings">Settings</Tabs.Tab>
+                    </Tabs.List>
 
-                  {/* =========================
+                    {/* =========================
                     SCENES TAB
                     ========================= */}
-                  <Tabs.Panel value="scenes" h="100%">
-                    <Flex direction="column" h="100%" p="sm">
-                      {/* Scene List */}
-                      <ScrollArea flex={1} mih={0}>
-                        <Stack gap="xs">
-                          {campaign.scenes.map((scene) => (
-                            <Group
-                              key={scene.id}
-                              justify="space-between"
-                              wrap="nowrap"
-                              px="sm"
-                              py="xs"
-                              style={{
-                                cursor: "pointer",
-                                borderRadius: 6,
-                                background:
-                                  scene.id === campaign.activeSceneId
-                                    ? "var(--mantine-color-blue-light)"
-                                    : undefined,
-                              }}
-                              onClick={async () => {
-                                const updated = {
-                                  ...campaign,
-                                  activeSceneId: scene.id,
-                                };
-
-                                await saveAndEmit(updated);
-                              }}
-                            >
-                              <Text
-                                size="sm"
-                                truncate
+                    <Tabs.Panel value="scenes" h="100%">
+                      <Flex direction="column" h="100%" p="sm">
+                        {/* Scene List */}
+                        <ScrollArea flex={1} mih={0}>
+                          <Stack gap="xs">
+                            {campaign.scenes.map((scene) => (
+                              <Group
+                                key={scene.id}
+                                justify="space-between"
+                                wrap="nowrap"
+                                px="sm"
+                                py="xs"
                                 style={{
-                                  flex: 1,
+                                  cursor: "pointer",
+                                  borderRadius: 6,
+                                  background:
+                                    scene.id === campaign.activeSceneId
+                                      ? "var(--mantine-color-blue-light)"
+                                      : undefined,
+                                }}
+                                onClick={async () => {
+                                  const updated = {
+                                    ...campaign,
+                                    activeSceneId: scene.id,
+                                  };
+
+                                  await saveAndEmit(updated);
                                 }}
                               >
-                                🗺️ {scene.name}
-                              </Text>
-
-                              <ActionIcon
-                                color="red"
-                                variant="subtle"
-                                title="Delete Scene"
-                                onClick={(e) => handleDeleteScene(e, scene.id)}
-                              >
-                                🗑️
-                              </ActionIcon>
-                            </Group>
-                          ))}
-                        </Stack>
-                      </ScrollArea>
-
-                      {/* Add Scene Footer */}
-                      <Box pt="sm">
-                        {isAddingScene ? (
-                          <form onSubmit={sceneForm.onSubmit(handleAddScene)}>
-                            <Stack gap="sm">
-                              <TextInput
-                                label="Scene Name"
-                                placeholder="Scene Name..."
-                                autoFocus
-                                {...sceneForm.getInputProps("name")}
-                              />
-
-                              <Box>
-                                <Text size="sm" fw={500} mb={4}>
-                                  Scene Map Image
-                                </Text>
-
-                                <Button
-                                  type="button"
-                                  variant="default"
-                                  fullWidth
-                                  onClick={handlePickMapFile}
-                                  leftSection={<FileIcon size={18} />}
-                                >
-                                  {sceneForm.values.mapImage
-                                    ? sceneForm.values.mapImage
-                                        .split(/[\\/]/)
-                                        .pop()
-                                    : "Choose Map Image"}
-                                </Button>
-
-                                {sceneForm.errors.mapImage && (
-                                  <Text size="xs" c="red" mt={4}>
-                                    {sceneForm.errors.mapImage}
-                                  </Text>
-                                )}
-                              </Box>
-
-                              <Group grow>
-                                <Button type="submit" size="md">
-                                  Save
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  size="md"
-                                  color="red"
-                                  onClick={() => {
-                                    sceneForm.reset();
-                                    setIsAddingScene(false);
+                                <Text
+                                  size="sm"
+                                  truncate
+                                  style={{
+                                    flex: 1,
                                   }}
                                 >
-                                  Cancel
-                                </Button>
-                              </Group>
-                            </Stack>
-                          </form>
-                        ) : (
-                          <Button
-                            fullWidth
-                            size="md"
-                            leftSection={<Plus size={18} />}
-                            onClick={() => {
-                              sceneForm.reset();
-                              setIsAddingScene(true);
-                            }}
-                          >
-                            Add Scene
-                          </Button>
-                        )}
-                      </Box>
-                    </Flex>
-                  </Tabs.Panel>
+                                  🗺️ {scene.name}
+                                </Text>
 
-                  {/* =========================
+                                <ActionIcon
+                                  color="red"
+                                  variant="subtle"
+                                  title="Delete Scene"
+                                  radius="xl"
+                                  onClick={(e) =>
+                                    handleDeleteScene(e, scene.id)
+                                  }
+                                >
+                                  <Trash2 size={18} />
+                                </ActionIcon>
+                              </Group>
+                            ))}
+                          </Stack>
+                        </ScrollArea>
+
+                        {/* Add Scene Footer */}
+                        <Box pt="sm">
+                          {isAddingScene ? (
+                            <form onSubmit={sceneForm.onSubmit(handleAddScene)}>
+                              <Stack gap="sm">
+                                <TextInput
+                                  label="Scene Name"
+                                  placeholder="Scene Name..."
+                                  autoFocus
+                                  {...sceneForm.getInputProps("name")}
+                                />
+
+                                <Box>
+                                  <Text size="sm" fw={500} mb={4}>
+                                    Scene Map Image
+                                  </Text>
+
+                                  <Button
+                                    type="button"
+                                    variant="default"
+                                    fullWidth
+                                    onClick={handlePickMapFile}
+                                    leftSection={<FileIcon size={18} />}
+                                  >
+                                    {sceneForm.values.mapImage
+                                      ? sceneForm.values.mapImage
+                                          .split(/[\\/]/)
+                                          .pop()
+                                      : "Choose Map Image"}
+                                  </Button>
+
+                                  {sceneForm.errors.mapImage && (
+                                    <Text size="xs" c="red" mt={4}>
+                                      {sceneForm.errors.mapImage}
+                                    </Text>
+                                  )}
+                                </Box>
+
+                                <Group grow>
+                                  <Button type="submit" size="md">
+                                    Save
+                                  </Button>
+
+                                  <Button
+                                    type="button"
+                                    size="md"
+                                    color="red"
+                                    onClick={() => {
+                                      sceneForm.reset();
+                                      setIsAddingScene(false);
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </Group>
+                              </Stack>
+                            </form>
+                          ) : (
+                            <Button
+                              fullWidth
+                              size="md"
+                              leftSection={<Plus size={18} />}
+                              onClick={() => {
+                                sceneForm.reset();
+                                setIsAddingScene(true);
+                              }}
+                            >
+                              Add Scene
+                            </Button>
+                          )}
+                        </Box>
+                      </Flex>
+                    </Tabs.Panel>
+
+                    {/* =========================
                     TOKENS TAB
                     ========================= */}
-                  <Tabs.Panel value="tokens" h="100%">
-                    <Flex direction="column" h="100%" p="sm">
-                      {/* Token Header */}
-                      <Group justify="space-between" mb="xs">
-                        <Text fw={600}>Token Library</Text>
+                    <Tabs.Panel value="tokens" h="100%">
+                      <Flex direction="column" h="100%" p="sm">
+                        {/* Token Header */}
+                        <Group justify="space-between" mb="xs">
+                          <Text fw={600}>Token Library</Text>
 
-                        <Button
-                          size="xs"
-                          variant="light"
-                          leftSection={<Plus size={14} />}
-                          onClick={handleImportToken}
-                        >
-                          Import Token
-                        </Button>
-                      </Group>
+                          <Button
+                            size="xs"
+                            variant="light"
+                            leftSection={<Plus size={14} />}
+                            onClick={handleImportToken}
+                          >
+                            Import Token
+                          </Button>
+                        </Group>
 
-                      <Text size="xs" c="dimmed" mb="sm">
-                        Drag any token onto the active map view.
-                      </Text>
+                        <Text size="xs" c="dimmed" mb="sm">
+                          Drag any token onto the active map view.
+                        </Text>
 
-                      {/* Token Content */}
-                      <ScrollArea flex={1} mih={0}>
-                        <Stack gap="md">
-                          {/* =========================
+                        {/* Token Content */}
+                        <ScrollArea flex={1} mih={0}>
+                          <Stack gap="md">
+                            {/* =========================
             DEFAULT TOKENS
             ========================= */}
-                          <Box>
-                            <UnstyledButton
-                              w="100%"
-                              onClick={() =>
-                                setDefaultTokensExpanded((prev) => !prev)
-                              }
-                              aria-expanded={defaultTokensExpanded}
-                            >
-                              <Group justify="space-between">
-                                <Group gap="xs">
-                                  <Box
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      transition: "transform 150ms ease",
-                                      transform: defaultTokensExpanded
-                                        ? "rotate(0deg)"
-                                        : "rotate(0deg)",
-                                    }}
-                                  >
-                                    {defaultTokensExpanded ? (
-                                      <ChevronDown size={16} />
-                                    ) : (
-                                      <ChevronRight size={16} />
-                                    )}
-                                  </Box>
+                            <Box>
+                              <UnstyledButton
+                                w="100%"
+                                onClick={() =>
+                                  setDefaultTokensExpanded((prev) => !prev)
+                                }
+                                aria-expanded={defaultTokensExpanded}
+                              >
+                                <Group justify="space-between">
+                                  <Group gap="xs">
+                                    <Box
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        transition: "transform 150ms ease",
+                                        transform: defaultTokensExpanded
+                                          ? "rotate(0deg)"
+                                          : "rotate(0deg)",
+                                      }}
+                                    >
+                                      {defaultTokensExpanded ? (
+                                        <ChevronDown size={16} />
+                                      ) : (
+                                        <ChevronRight size={16} />
+                                      )}
+                                    </Box>
 
-                                  <Text size="sm" fw={600}>
-                                    Default Tokens
+                                    <Text size="sm" fw={600}>
+                                      Default Tokens
+                                    </Text>
+                                  </Group>
+
+                                  <Text size="sm" c="dimmed">
+                                    {
+                                      availableTokens.filter(
+                                        (token) => token.isDefault,
+                                      ).length
+                                    }
                                   </Text>
                                 </Group>
+                              </UnstyledButton>
 
-                                <Text size="sm" c="dimmed">
-                                  {
-                                    availableTokens.filter(
-                                      (token) => token.isDefault,
-                                    ).length
-                                  }
-                                </Text>
-                              </Group>
-                            </UnstyledButton>
+                              <Collapse
+                                expanded={defaultTokensExpanded}
+                                transitionDuration={200}
+                                transitionTimingFunction="ease"
+                              >
+                                <Stack gap="xs" mt="xs">
+                                  <Text size="xs" c="dimmed">
+                                    Built-in game tokens.
+                                  </Text>
 
-                            <Collapse
-                              expanded={defaultTokensExpanded}
-                              transitionDuration={200}
-                              transitionTimingFunction="ease"
-                            >
-                              <Stack gap="xs" mt="xs">
-                                <Text size="xs" c="dimmed">
-                                  Built-in game tokens.
-                                </Text>
+                                  <SimpleGrid cols={3} spacing="xs">
+                                    {availableTokens
+                                      .filter((token) => token.isDefault)
+                                      .map((token) => (
+                                        <DraggableToken
+                                          key={token.id}
+                                          token={token}
+                                        />
+                                      ))}
+                                  </SimpleGrid>
+                                </Stack>
+                              </Collapse>
+                            </Box>
 
-                                <SimpleGrid cols={3} spacing="xs">
-                                  {availableTokens
-                                    .filter((token) => token.isDefault)
-                                    .map((token) => (
-                                      <DraggableToken
-                                        key={token.id}
-                                        token={token}
-                                      />
-                                    ))}
-                                </SimpleGrid>
-                              </Stack>
-                            </Collapse>
-                          </Box>
-
-                          {/* =========================
+                            {/* =========================
             CUSTOM TOKENS
             ========================= */}
-                          <Box>
-                            <UnstyledButton
-                              w="100%"
-                              onClick={() =>
-                                setCustomTokensExpanded((prev) => !prev)
-                              }
-                              aria-expanded={customTokensExpanded}
-                            >
-                              <Group justify="space-between">
-                                <Group gap="xs">
-                                  <Box
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    {customTokensExpanded ? (
-                                      <ChevronDown size={16} />
-                                    ) : (
-                                      <ChevronRight size={16} />
-                                    )}
-                                  </Box>
+                            <Box>
+                              <UnstyledButton
+                                w="100%"
+                                onClick={() =>
+                                  setCustomTokensExpanded((prev) => !prev)
+                                }
+                                aria-expanded={customTokensExpanded}
+                              >
+                                <Group justify="space-between">
+                                  <Group gap="xs">
+                                    <Box
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      {customTokensExpanded ? (
+                                        <ChevronDown size={16} />
+                                      ) : (
+                                        <ChevronRight size={16} />
+                                      )}
+                                    </Box>
 
-                                  <Text size="sm" fw={600}>
-                                    Custom Tokens
+                                    <Text size="sm" fw={600}>
+                                      Custom Tokens
+                                    </Text>
+                                  </Group>
+
+                                  <Text size="sm" c="dimmed">
+                                    {
+                                      availableTokens.filter(
+                                        (token) => !token.isDefault,
+                                      ).length
+                                    }
                                   </Text>
                                 </Group>
+                              </UnstyledButton>
 
-                                <Text size="sm" c="dimmed">
-                                  {
-                                    availableTokens.filter(
-                                      (token) => !token.isDefault,
-                                    ).length
-                                  }
-                                </Text>
-                              </Group>
-                            </UnstyledButton>
+                              <Collapse
+                                expanded={customTokensExpanded}
+                                transitionDuration={200}
+                                transitionTimingFunction="ease"
+                              >
+                                <Stack gap="xs" mt="xs">
+                                  <Text size="xs" c="dimmed">
+                                    Imported tokens.
+                                  </Text>
 
-                            <Collapse
-                              expanded={customTokensExpanded}
-                              transitionDuration={200}
-                              transitionTimingFunction="ease"
-                            >
-                              <Stack gap="xs" mt="xs">
-                                <Text size="xs" c="dimmed">
-                                  Imported tokens.
-                                </Text>
+                                  <SimpleGrid cols={3} spacing="xs">
+                                    {availableTokens
+                                      .filter((token) => !token.isDefault)
+                                      .map((token) => (
+                                        <DraggableToken
+                                          key={token.id}
+                                          token={token}
+                                        />
+                                      ))}
+                                  </SimpleGrid>
+                                </Stack>
+                              </Collapse>
+                            </Box>
+                          </Stack>
+                        </ScrollArea>
+                      </Flex>
+                    </Tabs.Panel>
 
-                                <SimpleGrid cols={3} spacing="xs">
-                                  {availableTokens
-                                    .filter((token) => !token.isDefault)
-                                    .map((token) => (
-                                      <DraggableToken
-                                        key={token.id}
-                                        token={token}
-                                      />
-                                    ))}
-                                </SimpleGrid>
-                              </Stack>
-                            </Collapse>
-                          </Box>
-                        </Stack>
-                      </ScrollArea>
-                    </Flex>
-                  </Tabs.Panel>
-
-                  {/* =========================
+                    {/* =========================
                     SETTINGS TAB
                     ========================= */}
-                  <Tabs.Panel value="settings" h="100%">
-                    <ScrollArea h="100%">
-                      <Stack gap="md" p="sm">
-                        {activeScene ? (
-                          <>
-                            <TextInput
-                              label="Scene Name"
-                              value={activeScene.name}
-                              onChange={(event) =>
-                                handleUpdateActiveScene({
-                                  name: event.currentTarget.value,
-                                })
-                              }
-                            />
+                    <Tabs.Panel value="settings" h="100%">
+                      <ScrollArea h="100%">
+                        <Stack gap="md" p="sm">
+                          {activeScene ? (
+                            <>
+                              <TextInput
+                                label="Scene Name"
+                                value={activeScene.name}
+                                onChange={(event) =>
+                                  handleUpdateActiveScene({
+                                    name: event.currentTarget.value,
+                                  })
+                                }
+                              />
 
-                            <Checkbox
-                              label="Show Grid Overlay"
-                              checked={activeScene.gridEnabled ?? false}
-                              onChange={(e) =>
-                                handleUpdateActiveScene({
-                                  gridEnabled: e.target.checked,
-                                })
-                              }
-                            />
+                              <Checkbox
+                                label="Show Grid Overlay"
+                                checked={activeScene.gridEnabled ?? false}
+                                onChange={(e) =>
+                                  handleUpdateActiveScene({
+                                    gridEnabled: e.target.checked,
+                                  })
+                                }
+                              />
 
-                            <NumberInput
-                              label="Grid Size (px)"
-                              value={activeScene.gridSize || 50}
-                              onChange={(value) =>
-                                handleUpdateActiveScene({
-                                  gridSize: Number(value),
-                                })
-                              }
-                            />
-                          </>
-                        ) : (
-                          <Text c="dimmed" size="sm">
-                            No active scene to configure.
-                          </Text>
-                        )}
-                      </Stack>
-                    </ScrollArea>
-                  </Tabs.Panel>
-                </Tabs>
-              )}
+                              <NumberInput
+                                label="Grid Size (px)"
+                                value={activeScene.gridSize || 50}
+                                onChange={(value) =>
+                                  handleUpdateActiveScene({
+                                    gridSize: Number(value),
+                                  })
+                                }
+                              />
+                            </>
+                          ) : (
+                            <Text c="dimmed" size="sm">
+                              No active scene to configure.
+                            </Text>
+                          )}
+                        </Stack>
+                      </ScrollArea>
+                    </Tabs.Panel>
+                  </Tabs>
+                )}
+              </Box>
+              <ActionIcon
+                variant="default"
+                size="sm"
+                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                title={isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+                aria-label={
+                  isSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"
+                }
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  right: -14,
+                  zIndex: 20,
+                }}
+              >
+                {isSidebarCollapsed ? (
+                  <ChevronRight size={16} />
+                ) : (
+                  <ChevronLeft size={16} />
+                )}
+              </ActionIcon>
             </Box>
 
             {/* =========================
