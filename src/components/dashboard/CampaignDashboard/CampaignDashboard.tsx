@@ -38,14 +38,26 @@ import {
   UnstyledButton,
   Collapse,
 } from "@mantine/core";
-import { ArrowLeft, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  FileIcon,
+  Plus,
+} from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import { DragTokenPreview } from "../../campaigns/DragTokenPreview/DragTokenPreview";
+import { useForm } from "@mantine/form";
 
 interface CampaignDashboardProps {
   campaign: Campaign;
   onUpdateCampaign: (updated: Campaign) => void;
   onBack: () => void;
+}
+
+interface SceneFormValues {
+  name: string;
+  mapImage: string | null;
 }
 
 export function CampaignDashboard({
@@ -57,14 +69,29 @@ export function CampaignDashboard({
     "scenes",
   );
 
+  const sceneForm = useForm<SceneFormValues>({
+    mode: "controlled",
+
+    initialValues: {
+      name: "",
+      mapImage: null,
+    },
+
+    validate: {
+      name: (value) =>
+        value.trim().length < 1 ? "Scene name is required" : null,
+
+      mapImage: (value) => (value === null ? "A map image is required" : null),
+    },
+  });
+
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const [viewportSize, setViewportSize] = useState({
     width: 0,
     height: 0,
   });
-  const [newSceneName, setNewSceneName] = useState("");
-  const [selectedMapPath, setSelectedMapPath] = useState<string | null>(null);
+
   const [isAddingScene, setIsAddingScene] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
@@ -317,12 +344,15 @@ export function CampaignDashboard({
       const selected = await open({
         multiple: false,
         filters: [
-          { name: "Images", extensions: ["png", "jpg", "jpeg", "webp"] },
+          {
+            name: "Images",
+            extensions: ["png", "jpg", "jpeg", "webp"],
+          },
         ],
       });
 
       if (selected && typeof selected === "string") {
-        setSelectedMapPath(selected);
+        sceneForm.setFieldValue("mapImage", selected);
       }
     } catch (err) {
       console.error("Failed to pick file:", err);
@@ -399,28 +429,42 @@ export function CampaignDashboard({
       activeSceneId: nextActiveId,
     };
 
-    if (activeScene) await deleteMapAsset(activeScene.mapImage);
+    const sceneToDelete = campaign.scenes.find(
+      (scene) => scene.id === sceneIdToDelete,
+    );
+
+    if (sceneToDelete?.mapImage) {
+      const isMapUsedElsewhere = campaign.scenes.some(
+        (scene) =>
+          scene.id !== sceneToDelete.id &&
+          scene.mapImage === sceneToDelete.mapImage,
+      );
+
+      if (!isMapUsedElsewhere) {
+        await deleteMapAsset(sceneToDelete.mapImage);
+      }
+    }
 
     await saveAndEmit(updatedCampaign);
   }
 
-  async function handleAddScene(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newSceneName.trim()) return;
+  async function handleAddScene(values: SceneFormValues) {
+    if (!values.mapImage) {
+      return;
+    }
 
-    let savedRelativePath = "";
+    let savedRelativePath: string;
 
-    if (selectedMapPath) {
-      try {
-        savedRelativePath = await saveMapAsset(campaign.id, selectedMapPath);
-      } catch (err) {
-        console.error("Failed to copy map file to assets:", err);
-      }
+    try {
+      savedRelativePath = await saveMapAsset(campaign.id, values.mapImage);
+    } catch (err) {
+      console.error("Failed to copy map file to assets:", err);
+      return;
     }
 
     const newScene: Scene = {
       id: `scene_${Date.now()}`,
-      name: newSceneName.trim(),
+      name: values.name.trim(),
       gridSize: 50,
       gridColor: "#ffffffff",
       gridEnabled: false,
@@ -435,21 +479,15 @@ export function CampaignDashboard({
     };
 
     await saveAndEmit(updatedCampaign);
-    setNewSceneName("");
-    setSelectedMapPath(null);
+
+    sceneForm.reset();
     setIsAddingScene(false);
   }
 
   function handleDragStart(event: any) {
-    console.log("DRAG START", event);
-    console.log("SOURCE", event.operation?.source);
-    console.log("SOURCE DATA", event.operation?.source?.data);
-
     if (event.canceled) return;
 
     const token = event.operation.source.data as Token;
-
-    console.log("TOKEN", token);
 
     setDraggingToken(token);
   }
@@ -544,7 +582,6 @@ export function CampaignDashboard({
 
   return (
     <Container fluid p={0} h="100vh">
-      <h1>Is token being dragged: {draggingToken ? "Yes" : "No"}</h1>
       <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <Flex direction="column" h="100vh">
           {/* Workspace Header */}
@@ -675,34 +712,40 @@ export function CampaignDashboard({
                       {/* Add Scene Footer */}
                       <Box pt="sm">
                         {isAddingScene ? (
-                          <form onSubmit={handleAddScene}>
+                          <form onSubmit={sceneForm.onSubmit(handleAddScene)}>
                             <Stack gap="sm">
                               <TextInput
+                                label="Scene Name"
                                 placeholder="Scene Name..."
-                                value={newSceneName}
-                                onChange={(e) =>
-                                  setNewSceneName(e.target.value)
-                                }
                                 autoFocus
+                                {...sceneForm.getInputProps("name")}
                               />
 
-                              <Button
-                                type="button"
-                                variant="default"
-                                onClick={handlePickMapFile}
-                                fullWidth
-                              >
-                                {selectedMapPath
-                                  ? "📁 Change Map Image"
-                                  : "📁 Choose Map Image"}
-                              </Button>
-
-                              {selectedMapPath && (
-                                <Text size="xs" c="dimmed" truncate>
-                                  Selected:{" "}
-                                  {selectedMapPath.split(/[\\/]/).pop()}
+                              <Box>
+                                <Text size="sm" fw={500} mb={4}>
+                                  Scene Map Image
                                 </Text>
-                              )}
+
+                                <Button
+                                  type="button"
+                                  variant="default"
+                                  fullWidth
+                                  onClick={handlePickMapFile}
+                                  leftSection={<FileIcon size={18} />}
+                                >
+                                  {sceneForm.values.mapImage
+                                    ? sceneForm.values.mapImage
+                                        .split(/[\\/]/)
+                                        .pop()
+                                    : "Choose Map Image"}
+                                </Button>
+
+                                {sceneForm.errors.mapImage && (
+                                  <Text size="xs" c="red" mt={4}>
+                                    {sceneForm.errors.mapImage}
+                                  </Text>
+                                )}
+                              </Box>
 
                               <Group grow>
                                 <Button type="submit" size="md">
@@ -714,8 +757,8 @@ export function CampaignDashboard({
                                   size="md"
                                   color="red"
                                   onClick={() => {
+                                    sceneForm.reset();
                                     setIsAddingScene(false);
-                                    setSelectedMapPath(null);
                                   }}
                                 >
                                   Cancel
@@ -728,7 +771,10 @@ export function CampaignDashboard({
                             fullWidth
                             size="md"
                             leftSection={<Plus size={18} />}
-                            onClick={() => setIsAddingScene(true)}
+                            onClick={() => {
+                              sceneForm.reset();
+                              setIsAddingScene(true);
+                            }}
                           >
                             Add Scene
                           </Button>
