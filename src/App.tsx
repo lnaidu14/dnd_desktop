@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { CreateCampaignModal } from "./components/campaigns/CreateCampaignModal/CreateCampaignModal";
 import { CampaignDashboard } from "./components/dashboard/CampaignDashboard/CampaignDashboard";
-import "./App.css";
 import CampaignSelection from "./components/campaigns/CampaignSelection/CampaignSelection";
 import { useCampaigns } from "./components/campaigns/hooks/campaigns";
 import { useSettings } from "./components/campaigns/hooks/settings";
@@ -11,6 +10,7 @@ import { Loader, Plus } from "lucide-react";
 import { InitUserModal } from "./components/campaigns/InitUserModal/InitUserModal";
 import { Notifications, notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
+import "./App.css";
 
 function App() {
   const { settings, updateSettings, isLoading } = useSettings();
