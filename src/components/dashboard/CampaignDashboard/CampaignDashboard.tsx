@@ -99,6 +99,8 @@ export function CampaignDashboard({
   const [activeMapUrl, setActiveMapUrl] = useState<string | null>(null);
   const [defaultTokensExpanded, setDefaultTokensExpanded] = useState(true);
   const [customTokensExpanded, setCustomTokensExpanded] = useState(true);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+
   const defaultTokens: Token[] = [
     {
       id: "default_goblin",
@@ -261,6 +263,24 @@ export function CampaignDashboard({
       }
     });
   }, [activeMapUrl]);
+
+  function handleMoveToken(tokenId: string, row: number, col: number) {
+    if (!activeScene) return;
+
+    const updatedTokens = activeScene.tokens.map((token) =>
+      token.id === tokenId
+        ? {
+            ...token,
+            row,
+            col,
+          }
+        : token,
+    );
+
+    handleUpdateActiveScene({
+      tokens: updatedTokens,
+    });
+  }
 
   async function handleImportToken() {
     try {
@@ -1052,6 +1072,9 @@ export function CampaignDashboard({
                   cellSize={displayCellSize}
                   tokens={placedTokens}
                   onDeleteToken={handleDeleteToken}
+                  selectedTokenId={selectedTokenId}
+                  onSelectToken={setSelectedTokenId}
+                  onMoveToken={handleMoveToken}
                 />
               ) : (
                 <Flex h="100%" w="100%" align="center" justify="center">
