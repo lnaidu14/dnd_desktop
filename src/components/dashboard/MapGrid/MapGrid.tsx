@@ -6,6 +6,12 @@ import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
 import { Copy, Search, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { notifications } from "@mantine/notifications";
+import {
+  calculateSimplePath,
+  calculateMovementDistance,
+  getTokenMovementRange,
+} from "../../../utils/movement";
+import { GridPosition } from "../../../types/movement";
 
 interface MapGridProps {
   rows: number;
@@ -21,11 +27,6 @@ interface MapGridProps {
   onMoveToken: (tokenId: string, row: number, col: number) => void;
 }
 
-export interface GridPosition {
-  row: number;
-  col: number;
-}
-
 export function MapGrid({
   mapUrl,
   rows,
@@ -37,8 +38,6 @@ export function MapGrid({
   onSelectToken,
   onMoveToken,
 }: MapGridProps) {
-  const movementRange = 6;
-
   const [movementPath, setMovementPath] = useState<GridPosition[]>([]);
   const [isMoving, setIsMoving] = useState(false);
   const [pendingMovement, setPendingMovement] = useState<{
@@ -52,6 +51,12 @@ export function MapGrid({
   >({});
 
   const animationResolvers = useRef<Record<string, () => void>>({});
+
+  const selectedToken = getSelectedToken();
+
+  const movementRangeMeters = selectedToken
+    ? getTokenMovementRange(selectedToken)
+    : 0;
 
   function getSelectedToken() {
     if (!selectedTokenId) return null;
@@ -76,42 +81,6 @@ export function MapGrid({
         }));
       });
     }
-  }
-
-  function calculateSimplePath(
-    startRow: number,
-    startCol: number,
-    targetRow: number,
-    targetCol: number,
-  ) {
-    const path: GridPosition[] = [];
-
-    let row = startRow;
-    let col = startCol;
-
-    while (col !== targetCol) {
-      col += col < targetCol ? 1 : -1;
-
-      path.push({
-        row,
-        col,
-      });
-    }
-
-    while (row !== targetRow) {
-      row += row < targetRow ? 1 : -1;
-
-      path.push({
-        row,
-        col,
-      });
-    }
-
-    return path;
-  }
-
-  function calculateMovementCost(path: GridPosition[]) {
-    return path.length;
   }
 
   function handleCellMouseEnter(row: number, col: number) {
@@ -161,12 +130,26 @@ export function MapGrid({
       return;
     }
 
-    const movementCost = calculateMovementCost(path);
+    const occupiedCell = path.find((position) =>
+      isCellOccupied(position.row, position.col, selectedToken.id),
+    );
 
-    if (movementCost > movementRange) {
+    if (occupiedCell) {
       notifications.show({
         title: "Invalid movement",
-        message: `That movement costs ${movementCost} points, but this token can only move ${movementRange}.`,
+        message: "That path is blocked by another token.",
+        color: "red",
+      });
+
+      return;
+    }
+
+    const movementDistance = calculateMovementDistance(path);
+
+    if (movementDistance > movementRangeMeters) {
+      notifications.show({
+        title: "Invalid movement",
+        message: `That movement is ${movementDistance} meters, but this token can only move ${movementRangeMeters} meters.`,
         color: "red",
       });
 
@@ -198,6 +181,13 @@ export function MapGrid({
 
     onSelectToken(tokenId);
     setMovementPath([]);
+  }
+
+  function isCellOccupied(row: number, col: number, movingTokenId: string) {
+    return tokens.some(
+      (token) =>
+        token.id !== movingTokenId && token.row === row && token.col === col,
+    );
   }
 
   useEffect(() => {
@@ -243,6 +233,9 @@ export function MapGrid({
   const mapWidth = cols * cellSize;
   const mapHeight = rows * cellSize;
 
+  const movementDistance = calculateMovementDistance(movementPath);
+  const isMovementTooFar = movementDistance > movementRangeMeters;
+
   return (
     <Flex
       w="100%"
@@ -287,9 +280,6 @@ export function MapGrid({
               const isPathCell = movementPath.some(
                 (position) => position.row === row && position.col === col,
               );
-
-              const movementCost = calculateMovementCost(movementPath);
-              const isMovementTooFar = movementCost > movementRange;
 
               return (
                 <GridCell
