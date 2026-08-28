@@ -22,9 +22,9 @@ export default function ModeToggle({ toggled, onChange }: ModeToggleProps) {
   `}
       >
         {toggled ? (
-          <Telescope size={20} className="text-yellow-400" />
-        ) : (
           <Swords size={20} className="text-blue-500" />
+        ) : (
+          <Telescope size={20} className="text-yellow-400" />
         )}
       </div>
 

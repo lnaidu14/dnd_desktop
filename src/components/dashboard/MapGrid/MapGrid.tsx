@@ -84,13 +84,14 @@ export function MapGrid({
   }
 
   function handleCellMouseEnter(row: number, col: number) {
+    if (!toggleCombatMode) return;
     if (isMoving) return;
 
     const selectedToken = getSelectedToken();
 
     if (!selectedToken) return;
 
-    if (!selectedToken.row || !selectedToken.col) {
+    if (selectedToken.row === undefined || selectedToken.col === undefined) {
       return;
     }
 
@@ -146,6 +147,7 @@ export function MapGrid({
   }
 
   async function handleMovementClick() {
+    if (!toggleCombatMode) return;
     if (isMoving) return;
 
     const selectedToken = getSelectedToken();
@@ -177,6 +179,8 @@ export function MapGrid({
   }
 
   function handleTokenClick(tokenId: string) {
+    if (!toggleCombatMode) return;
+
     if (selectedTokenId === tokenId) {
       onSelectToken(null);
       setMovementPath([]);
@@ -192,6 +196,15 @@ export function MapGrid({
       (token) =>
         token.id !== movingTokenId && token.row === row && token.col === col,
     );
+  }
+
+  function handleCombatModeChange(combatMode: boolean) {
+    setToggleCombatMode(combatMode);
+
+    if (!combatMode) {
+      onSelectToken(null);
+      setMovementPath([]);
+    }
   }
 
   useEffect(() => {
@@ -267,11 +280,11 @@ export function MapGrid({
         >
           <ModeToggle
             toggled={toggleCombatMode}
-            onChange={setToggleCombatMode}
+            onChange={handleCombatModeChange}
           />
         </Box>
 
-        {selectedToken && (
+        {toggleCombatMode && selectedToken && (
           <Box
             pos="absolute"
             top={10}
