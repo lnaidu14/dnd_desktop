@@ -1,4 +1,4 @@
-import { Switch } from "@mantine/core";
+import { Switch, Tooltip } from "@mantine/core";
 import { Telescope, Swords } from "lucide-react";
 
 interface ModeToggleProps {
@@ -38,14 +38,23 @@ export default function ModeToggle({ toggled, onChange }: ModeToggleProps) {
           group-hover:opacity-100
         "
       >
-        <Switch
-          size="xl"
-          color="dark.4"
-          checked={toggled}
-          onChange={(event) => onChange(event.currentTarget.checked)}
-          onLabel={<Telescope size={16} className="text-yellow-400" />}
-          offLabel={<Swords size={16} className="text-blue-500" />}
-        />
+        <Tooltip
+          label={
+            toggled ? "Switch to Exploration Mode" : "Switch to Combat Mode"
+          }
+          withArrow
+          openDelay={300}
+          refProp="rootRef"
+        >
+          <Switch
+            size="xl"
+            color="dark.4"
+            checked={toggled}
+            onChange={(event) => onChange(event.currentTarget.checked)}
+            onLabel={<Telescope size={16} className="text-yellow-400" />}
+            offLabel={<Swords size={16} className="text-blue-500" />}
+          />
+        </Tooltip>
       </div>
     </div>
   );
