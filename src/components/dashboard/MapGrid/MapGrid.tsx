@@ -1,7 +1,7 @@
 import { Token } from "../../../types/campaigns";
 import { PlacedToken } from "../PlaceToken/PlacedToken";
 import { GridCell } from "../GridCell/GridCell";
-import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
+import { Box, Flex, Image, Text, Loader, Menu, Tooltip } from "@mantine/core";
 import { Copy, Search, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   getTokenMovementRange,
 } from "../../../utils/movement";
 import { GridPosition } from "../../../types/movement";
+import ModeToggle from "../ModeToggle/ModeToggle";
 
 interface MapGridProps {
   rows: number;
@@ -46,6 +47,8 @@ export function MapGrid({
   const [visualTokenOffsets, setVisualTokenOffsets] = useState<
     Record<string, { x: number; y: number }>
   >({});
+
+  const [toggleCombatMode, setToggleCombatMode] = useState(false);
 
   const animationResolvers = useRef<Record<string, () => void>>({});
 
@@ -254,6 +257,20 @@ export function MapGrid({
           flexShrink: 0,
         }}
       >
+        <Box
+          pos="absolute"
+          top={10}
+          right={10}
+          style={{
+            zIndex: 100,
+          }}
+        >
+          <ModeToggle
+            toggled={toggleCombatMode}
+            onChange={setToggleCombatMode}
+          />
+        </Box>
+
         {selectedToken && (
           <Box
             pos="absolute"
