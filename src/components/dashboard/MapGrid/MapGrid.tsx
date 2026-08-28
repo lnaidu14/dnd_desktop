@@ -5,9 +5,7 @@ import "./MapGrid.css";
 import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
 import { Copy, Search, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { notifications } from "@mantine/notifications";
 import {
-  calculateSimplePath,
   calculateMovementDistance,
   getTokenMovementRange,
 } from "../../../utils/movement";
@@ -90,20 +88,11 @@ export function MapGrid({
 
     if (!selectedToken) return;
 
-    if (selectedToken.row === undefined || selectedToken.col === undefined) {
+    if (!selectedToken.row || !selectedToken.col) {
       return;
     }
 
     const hoveredPosition = { row, col };
-
-    const existingIndex = movementPath.findIndex(
-      (position) => position.row === row && position.col === col,
-    );
-
-    if (existingIndex !== -1) {
-      setMovementPath(movementPath.slice(0, existingIndex + 1));
-      return;
-    }
 
     const lastPosition =
       movementPath.length > 0
@@ -117,6 +106,25 @@ export function MapGrid({
     const colDifference = Math.abs(col - lastPosition.col);
 
     if (rowDifference + colDifference !== 1) {
+      return;
+    }
+
+    const isOrigin = row === selectedToken.row && col === selectedToken.col;
+
+    if (isOrigin) {
+      setMovementPath([]);
+      return;
+    }
+
+    const existingIndex = movementPath.findIndex(
+      (position) => position.row === row && position.col === col,
+    );
+
+    if (existingIndex !== -1) {
+      const newPath = movementPath.slice(0, existingIndex + 1);
+
+      setMovementPath(newPath);
+
       return;
     }
 
@@ -227,8 +235,7 @@ export function MapGrid({
   const mapWidth = cols * cellSize;
   const mapHeight = rows * cellSize;
 
-  const movementDistance = calculateMovementDistance(movementPath);
-  const isMovementTooFar = movementDistance > movementRangeMeters;
+  const distanceTravelled = calculateMovementDistance(movementPath);
 
   return (
     <Flex
@@ -248,6 +255,24 @@ export function MapGrid({
           flexShrink: 0,
         }}
       >
+        {selectedToken && (
+          <Box
+            pos="absolute"
+            top={10}
+            left={10}
+            style={{
+              zIndex: 10,
+              background: "rgba(0, 0, 0, 0.7)",
+              padding: "8px 12px",
+              borderRadius: "6px",
+            }}
+          >
+            <Text c="white">
+              Distance: {distanceTravelled}m / {movementRangeMeters}m
+            </Text>
+          </Box>
+        )}
+
         <Image
           src={mapUrl}
           alt="Map"
@@ -282,7 +307,6 @@ export function MapGrid({
                   col={col}
                   size={cellSize}
                   isPathCell={isPathCell}
-                  isMovementTooFar={isMovementTooFar}
                   onMouseEnter={() => handleCellMouseEnter(row, col)}
                   onClick={() => handleMovementClick()}
                 >

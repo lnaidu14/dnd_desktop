@@ -8,7 +8,6 @@ interface GridCellProps {
   size: number;
   children: ReactNode;
   isPathCell?: boolean;
-  isMovementTooFar?: boolean;
   onMouseEnter?: () => void;
   onClick?: () => void;
 }
@@ -19,7 +18,6 @@ export function GridCell({
   size,
   children,
   isPathCell = false,
-  isMovementTooFar = false,
   onMouseEnter,
   onClick,
 }: GridCellProps) {
@@ -38,11 +36,7 @@ export function GridCell({
         width: size,
         height: size,
 
-        backgroundColor: isPathCell
-          ? isMovementTooFar
-            ? "rgba(239, 68, 68, 0.25)"
-            : "rgba(34, 139, 230, 0.25)"
-          : undefined,
+        backgroundColor: isPathCell ? "rgba(34, 139, 230, 0.25)" : undefined,
       }}
     >
       {children}
