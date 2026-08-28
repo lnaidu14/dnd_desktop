@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { CreateCampaignModal } from "./components/campaigns/CreateCampaignModal/CreateCampaignModal";
 import { CampaignDashboard } from "./components/dashboard/CampaignDashboard/CampaignDashboard";
-import "./App.css";
 import CampaignSelection from "./components/campaigns/CampaignSelection/CampaignSelection";
 import { useCampaigns } from "./components/campaigns/hooks/campaigns";
 import { useSettings } from "./components/campaigns/hooks/settings";

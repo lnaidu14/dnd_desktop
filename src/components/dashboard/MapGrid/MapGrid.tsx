@@ -1,13 +1,10 @@
 import { Token } from "../../../types/campaigns";
 import { PlacedToken } from "../PlaceToken/PlacedToken";
 import { GridCell } from "../GridCell/GridCell";
-import "./MapGrid.css";
 import { Box, Flex, Image, Text, Loader, Menu } from "@mantine/core";
 import { Copy, Search, TrashIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { notifications } from "@mantine/notifications";
 import {
-  calculateSimplePath,
   calculateMovementDistance,
   getTokenMovementRange,
 } from "../../../utils/movement";

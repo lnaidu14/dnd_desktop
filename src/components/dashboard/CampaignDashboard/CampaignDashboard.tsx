@@ -14,7 +14,6 @@ import {
   getImageSize,
   deleteMapAsset,
 } from "../../../utils/assets";
-import "./CampaignDashboard.css";
 import { MapGrid } from "../MapGrid/MapGrid";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";

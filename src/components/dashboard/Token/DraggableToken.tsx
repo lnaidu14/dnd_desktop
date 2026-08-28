@@ -1,6 +1,5 @@
 import { useDraggable } from "@dnd-kit/react";
 import { Token } from "../../../types/campaigns";
-import "./DraggableToken.css";
 
 interface DraggableTokenProps {
   token: Token;
