@@ -94,20 +94,49 @@ export function MapGrid({
       return;
     }
 
-    const path = calculateSimplePath(
-      selectedToken.row,
-      selectedToken.col,
-      row,
-      col,
+    const hoveredPosition = { row, col };
+
+    const existingIndex = movementPath.findIndex(
+      (position) => position.row === row && position.col === col,
     );
 
-    setMovementPath(path);
+    if (existingIndex !== -1) {
+      setMovementPath(movementPath.slice(0, existingIndex + 1));
+      return;
+    }
+
+    const lastPosition =
+      movementPath.length > 0
+        ? movementPath[movementPath.length - 1]
+        : {
+            row: selectedToken.row,
+            col: selectedToken.col,
+          };
+
+    const rowDifference = Math.abs(row - lastPosition.row);
+    const colDifference = Math.abs(col - lastPosition.col);
+
+    if (rowDifference + colDifference !== 1) {
+      return;
+    }
+
+    if (isCellOccupied(row, col, selectedToken.id)) {
+      return;
+    }
+
+    const newPath = [...movementPath, hoveredPosition];
+
+    const movementDistance = calculateMovementDistance(newPath);
+
+    if (movementDistance > movementRangeMeters) {
+      return;
+    }
+
+    setMovementPath(newPath);
   }
 
-  async function handleCellClick(row: number, col: number) {
+  async function handleMovementClick() {
     if (isMoving) return;
-
-    if (!selectedTokenId) return;
 
     const selectedToken = getSelectedToken();
 
@@ -117,57 +146,22 @@ export function MapGrid({
       return;
     }
 
-    const path = calculateSimplePath(
-      selectedToken.row,
-      selectedToken.col,
-      row,
-      col,
-    );
-
-    if (path.length === 0) {
-      onSelectToken(null);
-      setMovementPath([]);
-      return;
-    }
-
-    const occupiedCell = path.find((position) =>
-      isCellOccupied(position.row, position.col, selectedToken.id),
-    );
-
-    if (occupiedCell) {
-      notifications.show({
-        title: "Invalid movement",
-        message: "That path is blocked by another token.",
-        color: "red",
-      });
-
-      return;
-    }
-
-    const movementDistance = calculateMovementDistance(path);
-
-    if (movementDistance > movementRangeMeters) {
-      notifications.show({
-        title: "Invalid movement",
-        message: `That movement is ${movementDistance} meters, but this token can only move ${movementRangeMeters} meters.`,
-        color: "red",
-      });
-
-      return;
-    }
+    if (movementPath.length === 0) return;
 
     setIsMoving(true);
     setMovementPath([]);
 
+    const destination = movementPath[movementPath.length - 1];
+
     setPendingMovement({
       tokenId: selectedToken.id,
-      row,
-      col,
+      row: destination.row,
+      col: destination.col,
     });
 
-    await animateTokenMovement(selectedToken, path);
+    await animateTokenMovement(selectedToken, movementPath);
 
-    onMoveToken(selectedToken.id, row, col);
+    onMoveToken(selectedToken.id, destination.row, destination.col);
 
     onSelectToken(null);
   }
@@ -289,16 +283,8 @@ export function MapGrid({
                   size={cellSize}
                   isPathCell={isPathCell}
                   isMovementTooFar={isMovementTooFar}
-                  onClick={() =>
-                    isMovementTooFar
-                      ? notifications.show({
-                          title: "Invalid placement!",
-                          message: "Can't move token too far",
-                          color: "red",
-                        })
-                      : handleCellClick(row, col)
-                  }
                   onMouseEnter={() => handleCellMouseEnter(row, col)}
+                  onClick={() => handleMovementClick()}
                 >
                   {tokens
                     .filter((token) => token.row === row && token.col === col)
