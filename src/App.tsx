@@ -10,6 +10,7 @@ import { Loader, Plus } from "lucide-react";
 import { InitUserModal } from "./components/campaigns/InitUserModal/InitUserModal";
 import { Notifications, notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
+import "./App.css";
 
 function App() {
   const { settings, updateSettings, isLoading } = useSettings();
