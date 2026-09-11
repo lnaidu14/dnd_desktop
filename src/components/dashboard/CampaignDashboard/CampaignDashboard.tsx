@@ -721,7 +721,7 @@ export function CampaignDashboard({
                                     flex: 1,
                                   }}
                                 >
-                                  🗺️ {scene.name}
+                                  {scene.name}
                                 </Text>
 
                                 <ActionIcon
@@ -992,16 +992,6 @@ export function CampaignDashboard({
                                 onChange={(event) =>
                                   handleUpdateActiveScene({
                                     name: event.currentTarget.value,
-                                  })
-                                }
-                              />
-
-                              <Checkbox
-                                label="Show Grid Overlay"
-                                checked={activeScene.gridEnabled ?? false}
-                                onChange={(e) =>
-                                  handleUpdateActiveScene({
-                                    gridEnabled: e.target.checked,
                                   })
                                 }
                               />
