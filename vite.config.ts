@@ -20,14 +20,19 @@ export default defineConfig(async () => ({
     host: host || false,
     hmr: host
       ? {
-        protocol: "ws",
-        host,
-        port: 1421,
-      }
+          protocol: "ws",
+          host,
+          port: 1421,
+        }
       : undefined,
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+  test: {
+    globals: true, // Allows using 'describe', 'test', 'expect' without explicit imports
+    environment: "jsdom", // Simulates browser APIs
+    setupFiles: "./src/tests/setup.ts", // Runs setup before each test file
   },
 }));
