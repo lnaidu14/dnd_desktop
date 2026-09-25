@@ -76,7 +76,7 @@ export function InitUserModal({ onSettingsInit }: InitUserModalProps) {
           />
           <SimpleGrid cols={2}>
             <Button disabled={isSaving} type="submit" mt="sm">
-              {isSaving ? "Saving..." : "Saved"}
+              {isSaving ? "Saving..." : "Save"}
             </Button>
           </SimpleGrid>
         </form>
