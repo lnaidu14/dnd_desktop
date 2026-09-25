@@ -1,4 +1,4 @@
-  export const rollDice = () => {
-    const roll = Math.floor(Math.random() * 6) + 1;
-    return roll
-  };
+export const rollDice = (max: number = 6) => {
+  const roll = Math.floor(Math.random() * max) + 1;
+  return roll;
+};
