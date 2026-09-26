@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"; // Added useState
+import { useEffect, useState } from "react";
 import { CreateCampaignModal } from "./components/campaigns/CreateCampaignModal/CreateCampaignModal";
 import { CampaignDashboard } from "./components/dashboard/CampaignDashboard/CampaignDashboard";
 import CampaignSelection from "./components/campaigns/CampaignSelection/CampaignSelection";
@@ -34,9 +34,13 @@ function App() {
   } = useCampaigns();
 
   useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Shortcut: Ctrl + Alt + K (case-insensitive check)
-      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "k") {
+      // Shortcut: Ctrl + K (case-insensitive check)
+      if (event.ctrlKey && event.key.toLowerCase() === "k") {
         event.preventDefault();
         event.stopPropagation();
         setShowPlayground((prev) => !prev);
